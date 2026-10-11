@@ -1,5 +1,6 @@
 // Deno mirror of the rules in src/lib/ingestPayload.ts (authoritative, tested
 // there). Dependency-free so the edge function needs no npm resolution.
+import { coerceSharedUrl } from './sharedUrl.ts';
 
 const CHANNELS = [
   'shortcut',
@@ -44,12 +45,13 @@ export function validatePayload(input: unknown): ValidationResult {
   }
   const body = input as Record<string, unknown>;
 
-  const url = clean(body.url);
-  const note = clean(body.note);
-
-  if (url !== undefined && !/^https?:\/\//i.test(url)) {
-    return { ok: false, error: 'url must be http(s)' };
-  }
+  // Shortcut/share input is often a text blob or a scheme-less link; recover
+  // the link, and keep link-less text as note so the save never fails on it.
+  const shared = coerceSharedUrl(typeof body.url === 'string' ? body.url : '');
+  const url = shared.url;
+  const userNote = clean(body.note);
+  const note =
+    shared.text && userNote ? `${userNote}\n${shared.text}` : (userNote ?? shared.text);
 
   let imagePath: string | undefined;
   if (body.image_path !== undefined) {

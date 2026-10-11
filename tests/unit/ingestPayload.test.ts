@@ -38,9 +38,24 @@ describe('ingestPayloadSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('rejects a non-http(s) url', () => {
+  it('keeps a non-http(s) value as note text instead of a url', () => {
     const result = parseIngestPayload({ url: 'ftp://example.com/x' });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.url).toBeUndefined();
+      expect(result.data.note).toBe('ftp://example.com/x');
+    }
+  });
+
+  it('recovers the link from a shared text blob and keeps the user note', () => {
+    const result = parseIngestPayload({
+      url: 'Xem nè https://www.threads.net/@a/post/xyz',
+      note: 'hay',
+    });
+    expect(result.success && result.data).toMatchObject({
+      url: 'https://www.threads.net/@a/post/xyz',
+      note: 'hay',
+    });
   });
 
   it('rejects an unknown channel', () => {
