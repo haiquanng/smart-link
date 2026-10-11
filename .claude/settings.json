@@ -17,7 +17,6 @@
       "Bash(git diff *)",
       "Bash(git log *)",
       "Bash(git add *)",
-      "Bash(git commit *)",
       "Bash(ls *)"
     ],
     "deny": [
@@ -29,7 +28,17 @@
       "Bash(git push --force *)",
       "Bash(git reset --hard *)",
       "Bash(curl * | sh)",
-      "Bash(supabase db reset *)"
+      "Bash(supabase db reset *)",
+      "Bash(git commit)",
+      "Bash(git commit *)",
+      "Bash(git * commit *)",
+      "Bash(git push)",
+      "Bash(git push *)",
+      "Bash(git * push *)",
+      "Bash(git tag *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr merge *)",
+      "Bash(gh repo *)"
     ]
   }
 }

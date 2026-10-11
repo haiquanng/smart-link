@@ -15,4 +15,4 @@ Process:
 4. Run typecheck, lint, tests. Fix what you broke.
 5. Report: what changed, files touched, anything left undone or assumed.
 
-Never commit secrets, never edit `.env*`, never skip RLS, never put AI or service keys in the frontend, never let enrichment failure block a save.
+Never run `git commit` or `git push`; leave changes uncommitted and suggest a commit message. Never commit secrets, never edit `.env*`, never skip RLS, never put AI or service keys in the frontend, never let enrichment failure block a save.

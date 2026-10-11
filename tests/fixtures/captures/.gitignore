@@ -1,0 +1,3 @@
+log.ndjson
+*.json
+!.gitignore
