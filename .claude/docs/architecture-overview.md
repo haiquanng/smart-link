@@ -4,7 +4,7 @@
 ```
 Capture (iOS Shortcut | in-app paste | screenshot upload | Android Share Target)
    -> POST /functions/v1/ingest   (token auth, validate, normalizeUrl, insert status=pending)
-   -> enrich (background): fetch metadata -> OCR/summary (Claude) -> tags -> embedding -> status=ready
+   -> enrich (background): fetch metadata -> OCR/summary (Gemini) -> tags -> embedding (Google) -> status=ready
 PWA (Inbox | Search | Collections | Resurface | Settings)
    -> Supabase client under RLS -> search_items() / tables
 ```

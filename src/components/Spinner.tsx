@@ -7,7 +7,7 @@ export function Spinner() {
       role="status"
       aria-live="polite"
     >
-      <span className="h-6 w-6 animate-spin rounded-full border-2 border-slate-600 border-t-sky-400" />
+      <span className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-brand-500" />
       <span className="sr-only">{vi.common.loading}</span>
     </div>
   );

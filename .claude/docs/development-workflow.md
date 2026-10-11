@@ -27,9 +27,19 @@ Phase 0 and 1 are the biggest risk. Do not build UI polish before the Shortcut p
 - User convention: branch per task `feat/<short-name>`, `fix/<short-name>`; imperative subject up to 72 chars; no force push; squash merge to `main`.
 
 ## Environment
-`.env.example` names: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (frontend); `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY` (edge function secrets only).
+`.env.example` names: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (frontend); `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY` (edge function secrets only).
 
 ## Open questions
-- Embedding model and dimension for Vietnamese text (placeholder 1024).
-- Whether to run enrich inline after insert or via a database webhook.
-- Magic link only, or add Google sign-in in phase 2.
+- Embedding model and dimension for Vietnamese text (placeholder 1024). Decided: Google embeddings (cheapest tier); confirm model/dimension when implemented (may change schema from 1024).
+
+## Phase 3 deferred work (noted TODOs)
+- `supabase/functions/enrich` does metadata fetch only. Still to build, marked `TODO(phase-3-ai)`:
+  - Gemini summary + tags from note/metadata/content.
+  - Screenshot OCR (Gemini vision) -> `content_text`.
+  - Google embedding -> `items.embedding`.
+  - `pg_cron` fallback to re-run enrich for items stuck `pending`/`enrich_failed` (retryability beyond the ingest fire-and-forget trigger).
+- All require provider API keys in edge-function secrets; owner will provide later.
+
+## Resolved
+- Enrich runs via a fire-and-forget call from ingest (non-blocking), re-runnable on demand. A pg_cron fallback is still TODO.
+- Auth: email + password (switched from magic link for cost/rate-limit reasons).

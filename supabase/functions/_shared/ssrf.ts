@@ -24,7 +24,7 @@ function isBlockedHost(hostname: string): boolean {
   return false;
 }
 
-function assertAllowed(url: string): URL {
+export function assertAllowed(url: string): URL {
   const u = new URL(url);
   if (u.protocol !== 'http:' && u.protocol !== 'https:') {
     throw new Error('only http/https allowed');

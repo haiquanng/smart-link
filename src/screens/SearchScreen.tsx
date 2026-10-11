@@ -25,20 +25,20 @@ export function SearchScreen() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder={vi.search.placeholder}
           aria-label={vi.search.title}
-          className="mt-3 min-h-[44px] w-full rounded-lg border border-slate-700 bg-slate-800 px-4 text-slate-100 outline-none focus:border-sky-500"
+          className="mt-3 min-h-[44px] w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-slate-900 outline-none focus:border-brand-500"
         />
       </ScreenHeader>
 
       {!hasQuery ? (
-        <EmptyState message={vi.search.hint} />
+        <EmptyState message={vi.search.hint} icon="🔍" />
       ) : isLoading || isFetching ? (
         <Spinner />
       ) : isError ? (
         <ErrorState onRetry={() => refetch()} />
       ) : !data || data.length === 0 ? (
-        <EmptyState message={vi.search.empty} />
+        <EmptyState message={vi.search.empty} icon="🤔" />
       ) : (
-        <ul>
+        <ul className="flex flex-col gap-3 p-4">
           {data.map((item) => (
             <li key={item.id}>
               <ItemCard item={item} />

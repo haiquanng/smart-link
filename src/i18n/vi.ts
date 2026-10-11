@@ -39,9 +39,19 @@ export const vi = {
     signOut: 'Đăng xuất',
   },
 
+  add: {
+    urlPlaceholder: 'Dán link vào đây…',
+    notePlaceholder: 'Ghi chú của bạn (tuỳ chọn)',
+    save: 'Lưu',
+    saving: 'Đang lưu…',
+    saved: 'Đã lưu!',
+    failed: 'Lưu thất bại, thử lại.',
+    hint: 'Dán link hoặc viết ghi chú rồi bấm Lưu.',
+  },
+
   inbox: {
     title: 'Hộp lưu',
-    empty: 'Chưa có mục nào. Lưu một link từ Shortcut để bắt đầu.',
+    empty: 'Chưa có mục nào. Dán một link ở trên để bắt đầu.',
     emptyError: 'Không tải được danh sách.',
     statusPending: 'đang xử lý',
     statusFailed: 'làm giàu lỗi',

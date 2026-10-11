@@ -1,5 +1,6 @@
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { env } from '@/lib/env';
 import { generateApiToken, hashApiToken } from '@/lib/apiToken';
 import type { ApiToken, Item } from '@/types/item';
 
@@ -53,6 +54,26 @@ export const api = {
       .limit(limit);
     if (error) throw error;
     return (data ?? []) as Item[];
+  },
+
+  /** In-app capture (channel #2). Goes through the single ingest endpoint
+   *  using the session JWT, so normalize/dedupe/enrich stay server-side. */
+  async saveLink(url: string, note: string): Promise<void> {
+    const session = await api.getSession();
+    if (!session) throw new Error('not signed in');
+    const res = await fetch(`${env.VITE_SUPABASE_URL}/functions/v1/ingest`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        url: url.trim() || undefined,
+        note: note.trim() || undefined,
+        channel: 'manual',
+      }),
+    });
+    if (!res.ok) throw new Error(`save failed (${res.status})`);
   },
 
   async searchItems(query: string, limit = 50): Promise<Item[]> {

@@ -18,6 +18,26 @@ const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
+// Supabase edge runtime: lets background work outlive the response.
+declare const EdgeRuntime:
+  | { waitUntil(promise: Promise<unknown>): void }
+  | undefined;
+
+/** Kick off enrichment without blocking or failing the save (rule 1 & 7). */
+function triggerEnrich(itemId: string): void {
+  const task = fetch(`${SUPABASE_URL}/functions/v1/enrich`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ item_id: itemId }),
+  }).catch(() => {
+    /* enrich is retryable; a failed trigger must not affect the save */
+  });
+  if (typeof EdgeRuntime !== 'undefined') EdgeRuntime.waitUntil(task);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -26,7 +46,8 @@ Deno.serve(async (req) => {
     return json({ error: 'method not allowed' }, 405);
   }
 
-  // 1. Authenticate the api token.
+  // 1. Authenticate: Shortcut sends a personal api token, the in-app form sends
+  //    the user's session JWT. Both land in the same save path.
   const token = bearer(req.headers.get('authorization'));
   if (!token) return json({ error: 'missing token' }, 401);
 
@@ -39,9 +60,15 @@ Deno.serve(async (req) => {
     .maybeSingle();
 
   if (tokenError) return json({ error: 'auth lookup failed' }, 500);
-  if (!tokenRow) return json({ error: 'invalid token' }, 401);
 
-  const userId = tokenRow.user_id as string;
+  let userId: string;
+  if (tokenRow) {
+    userId = tokenRow.user_id as string;
+  } else {
+    const { data: userData } = await admin.auth.getUser(token);
+    if (!userData.user) return json({ error: 'invalid token' }, 401);
+    userId = userData.user.id;
+  }
 
   // 2. Validate the payload.
   let body: unknown;
@@ -67,10 +94,12 @@ Deno.serve(async (req) => {
   const source = detectSource(url ?? null);
 
   // Record token usage (best effort).
-  await admin
-    .from('api_tokens')
-    .update({ last_used_at: new Date().toISOString() })
-    .eq('id', tokenRow.id);
+  if (tokenRow) {
+    await admin
+      .from('api_tokens')
+      .update({ last_used_at: new Date().toISOString() })
+      .eq('id', tokenRow.id);
+  }
 
   // 4. Dedupe on the normalized URL per user (business rule 5): append the new
   //    note to the existing item rather than creating a second row.
@@ -122,5 +151,6 @@ Deno.serve(async (req) => {
     return json({ error: 'insert failed' }, 500);
   }
 
+  triggerEnrich(inserted.id);
   return json({ id: inserted.id, status: 'pending', duplicate: false }, 201);
 });
