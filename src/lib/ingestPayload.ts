@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { coerceSharedUrl } from '@/lib/sharedUrl';
 
 /**
  * Channels that can reach the ingest endpoint. Matches the `channel` enum in
@@ -30,10 +31,6 @@ const trimmedOptional = z
   .transform((value) => (value.length > 0 ? value : undefined))
   .optional();
 
-const httpUrl = trimmedOptional.refine(
-  (value) => value === undefined || /^https?:\/\//i.test(value),
-  { message: 'url must be http(s)' },
-);
 
 /** `{user_id}/{uuid}.ext` in the private `screenshots` bucket. */
 export const IMAGE_PATH_PATTERN =
@@ -53,10 +50,17 @@ export function imagePathOwnedBy(path: string, userId: string): boolean {
  */
 export const ingestPayloadSchema = z
   .object({
-    url: httpUrl,
+    url: z.string().optional(),
     note: trimmedOptional,
     channel: channelSchema,
     image_path: imagePath,
+  })
+  // Recover the link from a text blob or scheme-less copy; link-less text
+  // becomes part of the note so the save never fails on it (rule 1).
+  .transform(({ url, note, ...rest }) => {
+    const shared = coerceSharedUrl(url ?? '');
+    const merged = shared.text && note ? `${note}\n${shared.text}` : (note ?? shared.text);
+    return { ...rest, url: shared.url, note: merged };
   })
   .refine(
     (value) =>
