@@ -7,13 +7,13 @@ test('boots to the sign-in screen at iPhone width', async ({ page }) => {
     page.getByRole('heading', { name: 'Smart Link' }),
   ).toBeVisible();
 
-  const email = page.getByLabel('Email');
-  await expect(email).toBeVisible();
+  await expect(page.getByLabel('Email')).toBeVisible();
+  await expect(page.getByLabel('Mật khẩu')).toBeVisible();
 
-  const send = page.getByRole('button', { name: 'Gửi link đăng nhập' });
-  await expect(send).toBeVisible();
+  const submit = page.getByRole('button', { name: 'Đăng nhập', exact: true });
+  await expect(submit).toBeVisible();
 
   // Tap target at least 44px tall (coding standard).
-  const box = await send.boundingBox();
+  const box = await submit.boundingBox();
   expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
 });

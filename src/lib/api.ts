@@ -21,12 +21,23 @@ export const api = {
     return () => data.subscription.unsubscribe();
   },
 
-  async signInWithEmail(email: string): Promise<void> {
-    const { error } = await supabase.auth.signInWithOtp({
+  async signIn(email: string, password: string): Promise<void> {
+    const { error } = await supabase.auth.signInWithPassword({
       email,
-      options: { emailRedirectTo: window.location.origin },
+      password,
     });
     if (error) throw error;
+  },
+
+  /** Registers a new account. If email confirmation is off, a session is
+   *  returned and the user is signed in immediately. */
+  async signUp(
+    email: string,
+    password: string,
+  ): Promise<{ needsConfirmation: boolean }> {
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) throw error;
+    return { needsConfirmation: data.session === null };
   },
 
   async signOut(): Promise<void> {
