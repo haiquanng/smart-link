@@ -1,0 +1,17 @@
+# Minimal local config. `supabase link --project-ref <ref>` connects this to the
+# hosted project; `supabase start` runs the local stack. Regenerate with
+# `supabase init` if the CLI wants a fuller file.
+project_id = "smart-link"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+
+[db]
+port = 54322
+major_version = 15
+
+[functions.ingest]
+verify_jwt = false

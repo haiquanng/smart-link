@@ -6,10 +6,23 @@ import { z } from 'zod';
  * decision. `shortcut` is the default: Phase 0 only exercises the iOS Shortcut.
  */
 export const channelSchema = z
-  .enum(['shortcut', 'upload', 'share_target', 'manual'])
+  .enum(['shortcut', 'paste', 'upload', 'share_target', 'extension', 'manual'])
   .default('shortcut');
 
 export type Channel = z.infer<typeof channelSchema>;
+
+/** Source app, classified from the URL. Matches the source_type DB enum. */
+export const sourceSchema = z.enum([
+  'facebook',
+  'instagram',
+  'threads',
+  'substack',
+  'web',
+  'screenshot',
+  'other',
+]);
+
+export type Source = z.infer<typeof sourceSchema>;
 
 const trimmedOptional = z
   .string()
