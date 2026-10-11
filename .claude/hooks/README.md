@@ -1,0 +1,11 @@
+# Hooks
+
+No hooks are enabled yet. Add them in `.claude/settings.json` under `"hooks"` only when a manual step keeps getting forgotten.
+
+Candidates, in order of value:
+1. PostToolUse on Edit/Write for `src/**` and `supabase/**`: run `npx tsc --noEmit` and lint on the changed file.
+2. PreToolUse on Bash: block `git push --force`, `rm -rf`, `supabase db reset` (already denied in settings; a hook gives a clearer message).
+3. PreToolUse on Edit/Write: block any path matching `.env*`.
+4. Stop: remind to run `verify-changes` if source files changed and tests were not run.
+
+Keep hooks fast (under a few seconds) and quiet on success.
