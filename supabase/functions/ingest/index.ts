@@ -2,7 +2,7 @@
 // (architecture rule). Authenticates a personal api token, normalizes the URL,
 // and inserts the item as `pending`. Enrichment happens later and must never
 // block or fail this path.
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, json } from '../_shared/cors.ts';
 import { validatePayload } from '../_shared/validate.ts';
 import { detectSource, normalizeUrl } from '../_shared/url.ts';
