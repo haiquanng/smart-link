@@ -50,4 +50,13 @@ describe('parseMetadata', () => {
       '[Góc Architecture] Khi dependency gặp sự cố – ok',
     );
   });
+
+  it('returns the page description, preferring og:description', () => {
+    const html = `<meta name="description" content="plain">
+      <meta property="og:description" content="Mô tả &amp; hay">`;
+    expect(parseMetadata(html).description).toBe('Mô tả & hay');
+    expect(parseMetadata('<meta name="description" content="plain">').description).toBe(
+      'plain',
+    );
+  });
 });

@@ -1,74 +1,47 @@
-// POST /functions/v1/enrich  { "item_id": "uuid" }
-// Background enrichment. Idempotent and retryable. Any failure sets the item to
-// `enrich_failed` but never deletes or hides it — it stays searchable by note
-// (business rule 7). Called fire-and-forget by ingest and re-runnable on demand.
-//
-// TODO(phase-3-ai): Gemini summary + tags, screenshot OCR, and Google
-// embeddings. Tracked in .claude/docs/development-workflow.md. This skeleton
-// does metadata fetch only; AI steps plug in where marked below.
-import { createClient } from 'npm:@supabase/supabase-js@2';
+// POST /functions/v1/enrich
+//   { "item_id": "uuid" }      auth: service role key (ingest, on-demand)
+//   { "retry_stuck": true }    auth: CRON_SECRET (pg_cron every 15 min)
+// Background enrichment: metadata, then Gemini (summary, tags, OCR, title),
+// then embedding, then one update. Failures never lose an item (rule 7).
+import { admin, env } from '../_shared/adminClient.ts';
 import { corsHeaders, json } from '../_shared/cors.ts';
-import { fetchPageHtml } from '../_shared/fetchPage.ts';
-import { parseMetadata } from '../_shared/metadata.ts';
-import { dedupeAction } from '../_shared/dedupe.ts';
-import { timingSafeEqual } from '../_shared/token.ts';
-import { resolveRedirect } from '../_shared/ssrf.ts';
-import { needsRedirectResolution, normalizeUrl } from '../_shared/url.ts';
+import { bearer, timingSafeEqual } from '../_shared/token.ts';
+import { enrichItem } from './enrichItem.ts';
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const MAX_ATTEMPTS = 3;
+const RETRY_BATCH = 10;
+const PENDING_STALE_MS = 10 * 60 * 1000;
 
-const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
-
-function itemIdOf(body: unknown): string | null {
-  if (typeof body === 'object' && body !== null && 'item_id' in body) {
-    const v = (body as Record<string, unknown>).item_id;
-    return typeof v === 'string' ? v : null;
-  }
-  return null;
+function bodyField(body: unknown, key: string): unknown {
+  return typeof body === 'object' && body !== null
+    ? (body as Record<string, unknown>)[key]
+    : undefined;
 }
 
-interface ItemRow {
-  id: string;
-  user_id: string;
-  note: string | null;
-  image_path: string | null;
-}
-
-/**
- * Business rule 5: one row per normalized URL per user. If the resolved URL
- * already exists, fold this item into it per dedupeAction. Returns the id it
- * merged into, or null when the item stays (including the `separate` case,
- * where the caller must also leave url_normalized unset).
- */
-async function mergeIfDuplicate(
-  item: ItemRow,
-  resolved: string,
-): Promise<{ mergedInto: string | null; separate: boolean }> {
-  const { data: existing } = await admin
+async function retryStuck(): Promise<Response> {
+  const staleBefore = new Date(Date.now() - PENDING_STALE_MS).toISOString();
+  const { data, error } = await admin
     .from('items')
-    .select('id, note, image_path')
-    .eq('user_id', item.user_id)
-    .eq('url_normalized', resolved)
-    .neq('id', item.id)
-    .maybeSingle();
-  if (!existing) return { mergedInto: null, separate: false };
+    .select('id')
+    .lt('enrich_attempts', MAX_ATTEMPTS)
+    .or(`status.eq.enrich_failed,and(status.eq.pending,created_at.lt.${staleBefore})`)
+    .order('created_at', { ascending: true })
+    .limit(RETRY_BATCH);
+  if (error) return json({ error: 'lookup failed' }, 500);
 
-  const action = dedupeAction(!!item.image_path, !!existing.image_path);
-  if (action === 'separate') return { mergedInto: null, separate: true };
-
-  const merged =
-    item.note && existing.note
-      ? `${existing.note}\n${item.note}`
-      : (item.note ?? existing.note);
-  const update: Record<string, unknown> = { note: merged };
-  // The storage object moves with the image_path; it is not deleted here.
-  if (action === 'attach_image') update.image_path = item.image_path;
-  await admin.from('items').update(update).eq('id', existing.id);
-  await admin.from('items').delete().eq('id', item.id);
-  return { mergedInto: existing.id as string, separate: false };
+  const counts = { processed: 0, ready: 0, failed: 0 };
+  // Sequential on purpose: free-tier Gemini rate limits.
+  for (const row of data ?? []) {
+    counts.processed++;
+    try {
+      const outcome = await enrichItem(row.id as string);
+      if (outcome.kind === 'done' && outcome.status === 'enrich_failed') counts.failed++;
+      else counts.ready++;
+    } catch {
+      counts.failed++;
+    }
+  }
+  return json(counts, 200);
 }
 
 Deno.serve(async (req) => {
@@ -77,11 +50,11 @@ Deno.serve(async (req) => {
   }
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
 
-  // Internal-only: callers present the service role key.
-  const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
-  if (!timingSafeEqual(token, SERVICE_ROLE_KEY)) {
-    return json({ error: 'forbidden' }, 403);
-  }
+  const token = bearer(req.headers.get('authorization')) ?? '';
+  const isService = timingSafeEqual(token, env.SUPABASE_SERVICE_ROLE_KEY);
+  const isCron =
+    !!env.CRON_SECRET && env.CRON_SECRET.length >= 16 && timingSafeEqual(token, env.CRON_SECRET);
+  if (!isService && !isCron) return json({ error: 'forbidden' }, 403);
 
   let body: unknown;
   try {
@@ -89,61 +62,19 @@ Deno.serve(async (req) => {
   } catch {
     return json({ error: 'invalid json' }, 400);
   }
-  const itemId = itemIdOf(body);
-  if (!itemId) return json({ error: 'item_id required' }, 400);
 
-  const { data: item, error } = await admin
-    .from('items')
-    .select('id, user_id, url, url_normalized, note, title, image_path')
-    .eq('id', itemId)
-    .maybeSingle();
-  if (error) return json({ error: 'lookup failed' }, 500);
-  if (!item) return json({ error: 'not found' }, 404);
+  if (bodyField(body, 'retry_stuck') === true) return await retryStuck();
+
+  const itemId = bodyField(body, 'item_id');
+  if (!isService) return json({ error: 'forbidden' }, 403);
+  if (typeof itemId !== 'string') return json({ error: 'item_id required' }, 400);
 
   try {
-    const patch: Record<string, unknown> = { status: 'ready' };
-    let fetchUrl = item.url;
-
-    // Ingest skips redirect-following to save fast; resolve Facebook /share/
-    // links here so the real post URL is used for dedupe and metadata.
-    if (item.url && needsRedirectResolution(item.url)) {
-      const resolved = await normalizeUrl(item.url, resolveRedirect);
-      // A null url_normalized means ingest kept this screenshot out of the
-      // dedupe index; never put it back.
-      if (item.url_normalized !== null && resolved !== item.url_normalized) {
-        const { mergedInto, separate } = await mergeIfDuplicate(item, resolved);
-        if (mergedInto) return json({ id: mergedInto, merged: true }, 200);
-        if (!separate) patch.url_normalized = resolved;
-      }
-      fetchUrl = resolved;
-    }
-
-    if (fetchUrl) {
-      const html = await fetchPageHtml(fetchUrl);
-      if (html) {
-        const meta = parseMetadata(html);
-        // Only fill empty fields; never overwrite the user's note (rule 9).
-        if (meta.title && !item.title) patch.title = meta.title;
-        if (meta.image) patch.preview_image_url = meta.image;
-      }
-    }
-
-    // TODO(phase-3-ai): meta/content -> Gemini summary + tags; screenshot OCR;
-    // Google embedding -> patch.summary / item_tags / patch.embedding.
-
-    const { error: updateError } = await admin
-      .from('items')
-      .update(patch)
-      .eq('id', item.id);
-    // A concurrent save can claim the resolved URL first; keep the item and
-    // its share-link URL rather than failing enrichment.
-    if (updateError?.code === '23505') {
-      delete patch.url_normalized;
-      await admin.from('items').update(patch).eq('id', item.id);
-    }
-    return json({ id: item.id, status: 'ready' }, 200);
+    const outcome = await enrichItem(itemId);
+    if (outcome.kind === 'not_found') return json({ error: 'not found' }, 404);
+    if (outcome.kind === 'merged') return json({ id: outcome.id, merged: true }, 200);
+    return json({ id: outcome.id, status: outcome.status }, 200);
   } catch {
-    await admin.from('items').update({ status: 'enrich_failed' }).eq('id', itemId);
-    return json({ id: itemId, status: 'enrich_failed' }, 200);
+    return json({ error: 'lookup failed' }, 500);
   }
 });

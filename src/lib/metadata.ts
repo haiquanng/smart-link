@@ -1,6 +1,7 @@
 export interface PageMetadata {
   title?: string;
   image?: string;
+  description?: string;
 }
 
 function fromCodePoint(code: number): string {
@@ -45,6 +46,12 @@ export function parseMetadata(html: string): PageMetadata {
   const title = byKey['og:title'] ?? byKey['twitter:title'];
   const image =
     byKey['og:image'] ?? byKey['og:image:url'] ?? byKey['twitter:image'];
+
+  const description = byKey['og:description'] ?? byKey['description'];
+  if (description) {
+    const cleaned = decodeEntities(description).replace(/\s+/g, ' ').trim();
+    if (cleaned) result.description = cleaned;
+  }
 
   if (title) result.title = decodeEntities(title).trim();
   if (!result.title) {

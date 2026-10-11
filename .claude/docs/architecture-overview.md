@@ -16,7 +16,8 @@ PWA (Inbox | Search | Collections | Resurface | Settings)
 | Auth | Supabase Auth | Email + password; `profiles` row per user via trigger |
 | DB | Postgres + pgvector + unaccent | RLS on all tables |
 | Ingest | Edge Function `ingest` | Single entry for all channels |
-| Enrich | Edge Function `enrich` | Triggered after insert; idempotent; retryable |
+| Enrich | Edge Function `enrich` | Triggered after insert; idempotent; retryable. One Gemini call (`GEMINI_MODEL`, default `gemini-3.5-flash-lite`) returns OCR + title + summary + tags as JSON; then `gemini-embedding-2` at 768 dims |
+| Enrich retry | `pg_cron` + `pg_net` -> `enrich` `{ "retry_stuck": true }` every 15 min | Re-runs items `pending` >10 min or `enrich_failed`, while `enrich_attempts < 3`, 10 per run; auth by `CRON_SECRET` |
 | Storage | Supabase Storage, private bucket `screenshots` (5MB, jpeg/png/webp) | Path `{user_id}/{uuid}.jpg`, owner-only RLS, no update; signed URLs (1h, cached 50 min) |
 | Sweep | Edge Function `sweep-screenshots` via `pg_cron` + `pg_net` | Daily; deletes objects >24h old not referenced by `items.image_path`; auth by `CRON_SECRET` |
 | Resurface | `pg_cron` or scheduled function | Daily pick of old, unseen items |
@@ -32,16 +33,18 @@ PWA (Inbox | Search | Collections | Resurface | Settings)
     "source": "enum: facebook | instagram | threads | substack | web | screenshot | other",
     "channel": "enum: shortcut | paste | upload | share_target | extension | manual",
     "note": "text, user's own words, primary search signal",
-    "title": "text, nullable",
+    "title": "text, nullable; scraped first, AI fills it only when empty",
+    "title_origin": "enum tag_origin (user | ai), nullable; ai when Gemini wrote the title, null when scraped (business rule 8)",
     "summary": "text, nullable, AI",
     "content_text": "text, nullable, scraped or OCR",
     "image_path": "text, nullable, object name in private bucket screenshots: '{user_id}/{uuid}.jpg'; set only by ingest after ownership + existence check",
     "preview_image_url": "text, nullable",
     "status": "enum: pending | ready | enrich_failed",
+    "enrich_attempts": "int default 0, incremented on each enrich run; retry stops at 3",
     "seen_at": "timestamptz, nullable, set when user opens or dismisses in Resurface",
     "created_at": "timestamptz default now()",
     "fts": "tsvector generated from unaccent(note, title, summary, content_text), weights A,B,B,C",
-    "embedding": "vector(1024), nullable"
+    "embedding": "vector(768), nullable, gemini-embedding-2 of note + title + summary + content_text; HNSW cosine index"
   },
   "tags": {
     "id": "uuid pk",

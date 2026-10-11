@@ -35,17 +35,18 @@ The daily `sweep-screenshots` cron (migration `20261011000004`) needs two Vault 
 - `cron_secret`: a random 32+ byte value.
 Set the same value as an edge function secret: `supabase secrets set CRON_SECRET=<same value>`. Without both, the sweep call fails and orphaned screenshots stay in the bucket.
 
-## Open questions
-- Embedding model and dimension for Vietnamese text (placeholder 1024). Decided: Google embeddings (cheapest tier); confirm model/dimension when implemented (may change schema from 1024).
+## AI enrichment setup
+- Hosted: `supabase secrets set GEMINI_API_KEY=<key>` (optional `GEMINI_MODEL`, default `gemini-3.5-flash-lite`). Locally: `supabase/functions/.env` or `supabase functions serve --env-file .env`.
+- Without `GEMINI_API_KEY`, enrich skips the AI step, saves metadata and sets `ready` (so dev items are not marked failed). Items saved that way get no summary, tags, OCR or embedding until re-run with a key.
+- Migration `20261011000005` schedules `retry-enrich` (pg_cron, every 15 min) using the same Vault secrets as the sweep (`project_url`, `cron_secret`) and the `CRON_SECRET` function secret. It retries `enrich_failed` and `pending` older than 10 min, at most 3 attempts, 10 items per run.
+- Deno functions are not type-checked by CI (no `deno` in the dev environment so far); run `deno check supabase/functions/*/index.ts` when available. Pure logic is unit-tested in `src/lib` and mirrored in `supabase/functions/_shared` (`aiPatch.ts`, `geminiParse.ts`, `metadata.ts`); keep mirrors in sync.
+- Integration coverage for enrich with a mocked Gemini is not practical in the edge runtime; the pure parts are covered by unit tests.
 
-## Phase 3 deferred work (noted TODOs)
-- `supabase/functions/enrich` does metadata fetch only. Still to build, marked `TODO(phase-3-ai)`:
-  - Gemini summary + tags from note/metadata/content.
-  - Screenshot OCR (Gemini vision) -> `content_text`.
-  - Google embedding -> `items.embedding`.
-  - `pg_cron` fallback to re-run enrich for items stuck `pending`/`enrich_failed` (retryability beyond the ingest fire-and-forget trigger).
-- All require provider API keys in edge-function secrets; owner will provide later.
+## Open questions
+- Query embeddings for Phase 4 search: `task: search result | query: {q}`. Not built yet.
 
 ## Resolved
-- Enrich runs via a fire-and-forget call from ingest (non-blocking), re-runnable on demand. A pg_cron fallback is still TODO.
+- Enrich runs via a fire-and-forget call from ingest (non-blocking), re-runnable on demand, with a pg_cron retry fallback (`retry-enrich`).
+- Embedding: `gemini-embedding-2`, 768 dims (auto-normalized). Documents embedded as `title: {title} | text: {note}\n{summary}\n{ocr}`, max ~6000 chars. Switching models requires re-embedding everything.
+- Phase 3 AI: one Gemini call per item (OCR, title, summary, tags), then embedding; implemented in `supabase/functions/enrich`.
 - Auth: email + password (switched from magic link for cost/rate-limit reasons).

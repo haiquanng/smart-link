@@ -12,6 +12,8 @@ const base: Item = {
   note: 'cách định giá SaaS',
   title: 'A Facebook post',
   summary: null,
+  title_origin: null,
+  enrich_attempts: 0,
   content_text: null,
   image_path: null,
   preview_image_url: null,
@@ -79,5 +81,40 @@ describe('ItemCard', () => {
   it('clamps long notes so cards keep the same height', () => {
     render(<ItemCard item={{ ...base, note: 'dài '.repeat(200) }} />);
     expect(screen.getByTitle(/^dài/)).toHaveClass('line-clamp-2');
+  });
+
+  it('marks an AI-made title when there is no note', () => {
+    render(
+      <ItemCard
+        item={{ ...base, note: null, title: 'Tiêu đề AI', title_origin: 'ai' }}
+      />,
+    );
+    expect(screen.getByLabelText('Tạo bởi AI')).toBeInTheDocument();
+  });
+
+  it('does not mark scraped titles or note-led cards', () => {
+    render(<ItemCard item={{ ...base, title_origin: 'ai' }} />);
+    expect(screen.queryByLabelText('Tạo bởi AI')).not.toBeInTheDocument();
+  });
+
+  it('shows the summary as the secondary line when there is no title', () => {
+    render(
+      <ItemCard item={{ ...base, title: null, summary: 'Tóm tắt ngắn.' }} />,
+    );
+    expect(screen.getByText('Tóm tắt ngắn.')).toHaveClass('line-clamp-1');
+  });
+  it('shows the summary under an AI title when there is no note', () => {
+    render(
+      <ItemCard
+        item={{
+          ...base,
+          note: null,
+          title: 'Tiêu đề AI',
+          title_origin: 'ai',
+          summary: 'Tóm tắt ngắn',
+        }}
+      />,
+    );
+    expect(screen.getByText('Tóm tắt ngắn')).toBeInTheDocument();
   });
 });

@@ -22,6 +22,8 @@ export function optimisticItem({ url, note }: SaveInput, now: Date): Item {
     note: note.trim() || null,
     title: null,
     summary: null,
+    title_origin: null,
+    enrich_attempts: 0,
     content_text: null,
     image_path: null,
     preview_image_url: null,

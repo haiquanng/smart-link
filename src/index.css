@@ -37,6 +37,10 @@ input[type='search']::-webkit-search-cancel-button {
   opacity: 0.5;
 }
 
+button {
+  cursor: pointer;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

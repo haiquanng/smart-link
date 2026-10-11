@@ -11,6 +11,8 @@ export interface Item {
   note: string | null;
   title: string | null;
   summary: string | null;
+  title_origin: 'user' | 'ai' | null;
+  enrich_attempts: number;
   content_text: string | null;
   image_path: string | null;
   preview_image_url: string | null;

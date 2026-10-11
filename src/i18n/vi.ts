@@ -66,6 +66,7 @@ export const vi = {
     empty: 'Chưa có mục nào. Dán một link ở trên để bắt đầu.',
     emptyError: 'Không tải được danh sách.',
     statusPending: 'đang xử lý',
+    aiMade: 'Tạo bởi AI',
     noNote: '(không có ghi chú)',
     delete: 'Xoá',
     deleteTitle: 'Xoá mục này?',

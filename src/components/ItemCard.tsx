@@ -43,7 +43,15 @@ export function ItemCard({ item, imageUrl, onDelete }: ItemCardProps) {
   // information for ordinary websites.
   const host = SOCIAL.has(item.source) ? null : hostOf(item.url);
   const primary = item.note ?? item.title ?? item.summary ?? vi.inbox.noNote;
-  const secondary = item.note ? item.title : null;
+  // Rule 14 order: note, then title, then summary; the second line shows
+  // whichever comes next after the primary one.
+  const secondary = item.note
+    ? (item.title ?? item.summary)
+    : item.title
+      ? item.summary
+      : null;
+  // Rule 8: AI-made content must be visibly distinct from the user's own.
+  const aiTitle = !item.note && !!item.title && item.title_origin === 'ai';
   const enriching = isEnriching(item, Date.now());
   const imageSrc = imageUrl ?? item.preview_image_url;
   const showImage = imageSrc && !imageBroken;
@@ -57,6 +65,16 @@ export function ItemCard({ item, imageUrl, onDelete }: ItemCardProps) {
           className="line-clamp-2 whitespace-pre-line break-words font-semibold leading-snug text-ink"
         >
           {primary}
+          {aiTitle && (
+            <span
+              role="img"
+              aria-label={vi.inbox.aiMade}
+              title={vi.inbox.aiMade}
+              className="ml-1.5 inline-block rounded bg-stone-100 px-1 align-middle text-[10px] font-bold leading-4 text-stone-500"
+            >
+              AI
+            </span>
+          )}
         </p>
 
         {secondary && (

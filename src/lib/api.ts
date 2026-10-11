@@ -5,7 +5,7 @@ import { generateApiToken, hashApiToken } from '@/lib/apiToken';
 import type { ApiToken, Item } from '@/types/item';
 
 const ITEM_COLUMNS =
-  'id, url, url_normalized, source, channel, note, title, summary, content_text, image_path, preview_image_url, status, seen_at, created_at';
+  'id, url, url_normalized, source, channel, note, title, title_origin, summary, content_text, image_path, preview_image_url, status, enrich_attempts, seen_at, created_at';
 
 const SCREENSHOT_BUCKET = 'screenshots';
 export const SIGNED_URL_TTL_SECONDS = 3600;
