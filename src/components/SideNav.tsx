@@ -1,14 +1,9 @@
+import { NavLink } from 'react-router';
 import { Wordmark } from '@/components/Wordmark';
-import { TABS, type TabId } from '@/components/navTabs';
-
-interface SideNavProps {
-  active: TabId;
-  onChange: (tab: TabId) => void;
-  email: string | undefined;
-}
+import { TABS } from '@/components/navTabs';
 
 /** Desktop navigation: a sticky sidebar instead of the phone tab bar. */
-export function SideNav({ active, onChange, email }: SideNavProps) {
+export function SideNav({ email }: { email: string | undefined }) {
   return (
     <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-line bg-white px-4 py-6 lg:flex">
       <div className="px-3">
@@ -16,24 +11,26 @@ export function SideNav({ active, onChange, email }: SideNavProps) {
       </div>
 
       <nav className="mt-8 flex flex-col gap-0.5">
-        {TABS.map(({ id, label, icon: TabIcon }) => {
-          const selected = id === active;
-          return (
-            <button
-              key={id}
-              onClick={() => onChange(id)}
-              aria-current={selected ? 'page' : undefined}
-              className={`flex min-h-[40px] items-center gap-3 rounded-md px-3 text-sm ${
-                selected
+        {TABS.map(({ id, path, label, icon: TabIcon }) => (
+          <NavLink
+            key={id}
+            to={path}
+            className={({ isActive }) =>
+              `flex min-h-[40px] items-center gap-3 rounded-md px-3 text-sm ${
+                isActive
                   ? 'bg-stone-100 font-semibold text-ink'
                   : 'text-stone-500 hover:bg-stone-50 hover:text-ink'
-              }`}
-            >
-              <TabIcon size={18} strokeWidth={selected ? 2.2 : 1.8} />
-              {label}
-            </button>
-          );
-        })}
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <TabIcon size={18} strokeWidth={isActive ? 2.2 : 1.8} />
+                {label}
+              </>
+            )}
+          </NavLink>
+        ))}
       </nav>
 
       {email && (

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ItemCard } from '@/components/ItemCard';
 import type { Item } from '@/types/item';
@@ -58,19 +58,26 @@ describe('ItemCard', () => {
     );
   });
 
-  it('confirms before deleting', () => {
+  it('asks in a dialog before deleting, and cancel keeps the item', () => {
     const onDelete = vi.fn();
-    const confirm = vi.spyOn(window, 'confirm');
     render(<ItemCard item={base} onDelete={onDelete} />);
-    const button = screen.getByRole('button', { name: 'Xoá' });
 
-    confirm.mockReturnValueOnce(false);
-    fireEvent.click(button);
+    fireEvent.click(screen.getByRole('button', { name: 'Xoá' }));
+    const dialog = screen.getByRole('alertdialog');
+    expect(dialog).toHaveTextContent('Xoá mục này?');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Huỷ' }));
     expect(onDelete).not.toHaveBeenCalled();
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
 
-    confirm.mockReturnValueOnce(true);
-    fireEvent.click(button);
+    fireEvent.click(screen.getByRole('button', { name: 'Xoá' }));
+    fireEvent.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Xoá' }),
+    );
     expect(onDelete).toHaveBeenCalledWith(base);
-    confirm.mockRestore();
+  });
+
+  it('clamps long notes so cards keep the same height', () => {
+    render(<ItemCard item={{ ...base, note: 'dài '.repeat(200) }} />);
+    expect(screen.getByTitle(/^dài/)).toHaveClass('line-clamp-2');
   });
 });

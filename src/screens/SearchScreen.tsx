@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { Search } from 'lucide-react';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { EmptyState } from '@/components/EmptyState';
@@ -10,7 +10,11 @@ import { useSearchItems } from '@/hooks/useSearchItems';
 import { vi } from '@/i18n/vi';
 
 export function SearchScreen() {
-  const [query, setQuery] = useState('');
+  // The query lives in the URL so a refresh or shared link keeps the search.
+  const [params, setParams] = useSearchParams();
+  const query = params.get('q') ?? '';
+  const setQuery = (q: string) =>
+    setParams(q ? { q } : {}, { replace: true });
   const debounced = useDebounced(query, 300);
   const { data, isLoading, isError, isFetching, refetch } =
     useSearchItems(debounced);

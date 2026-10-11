@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Spinner } from '@/components/Spinner';
 import { ErrorState } from '@/components/ErrorState';
@@ -121,12 +122,17 @@ export function SettingsScreen({ email }: SettingsScreenProps) {
                           {vi.settings.revoked}
                         </span>
                       ) : (
-                        <button
-                          onClick={() => revokeToken.mutate(t.id)}
-                          className="min-h-[44px] shrink-0 px-2 text-sm font-medium text-red-600 hover:underline"
+                        <ConfirmDialog
+                          title={vi.settings.revokeTitle}
+                          description={vi.settings.revokeDescription}
+                          confirmLabel={vi.settings.revoke}
+                          tone="danger"
+                          onConfirm={() => revokeToken.mutate(t.id)}
                         >
-                          {vi.settings.revoke}
-                        </button>
+                          <button className="min-h-[44px] shrink-0 px-2 text-sm font-medium text-red-600 hover:underline">
+                            {vi.settings.revoke}
+                          </button>
+                        </ConfirmDialog>
                       )}
                     </li>
                   ))}

@@ -11,6 +11,7 @@ export const vi = {
   },
 
   common: {
+    cancel: 'Huỷ',
     loading: 'Đang tải…',
     retry: 'Thử lại',
     error: 'Có lỗi xảy ra',
@@ -67,7 +68,8 @@ export const vi = {
     statusPending: 'đang xử lý',
     noNote: '(không có ghi chú)',
     delete: 'Xoá',
-    deleteConfirm: 'Xoá mục này? Không thể hoàn tác.',
+    deleteTitle: 'Xoá mục này?',
+    deleteDescription: 'Ảnh và ghi chú của mục sẽ bị xoá. Không thể hoàn tác.',
   },
 
   search: {
@@ -93,6 +95,8 @@ export const vi = {
       'Đây là token của bạn. Nó chỉ hiện một lần — sao chép và lưu lại ngay.',
     revoke: 'Thu hồi',
     revoked: 'đã thu hồi',
+    revokeTitle: 'Thu hồi token này?',
+    revokeDescription: 'Shortcut đang dùng token này sẽ ngừng lưu được link.',
     lastUsed: 'dùng lần cuối',
     neverUsed: 'chưa dùng',
     noTokens: 'Chưa có token nào.',

@@ -114,7 +114,6 @@ async function mockBackend(page: Page) {
 
 test('uploads two screenshots, shows thumbnails, deletes one', async ({ page }) => {
   await mockBackend(page);
-  page.on('dialog', (dialog) => dialog.accept());
   await page.goto('/');
 
   await page.getByPlaceholder('Ghi chú của bạn (tuỳ chọn)').fill('hai ảnh thử');
@@ -139,5 +138,25 @@ test('uploads two screenshots, shows thumbnails, deletes one', async ({ page }) 
   const del = cards.first().getByRole('button', { name: 'Xoá' });
   expect((await del.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
   await del.click();
+  const dialog = page.getByRole('alertdialog');
+  await dialog.getByRole('button', { name: 'Huỷ' }).click();
+  await expect(cards).toHaveCount(2);
+
+  await del.click();
+  await dialog.getByRole('button', { name: 'Xoá' }).click();
   await expect(cards).toHaveCount(1);
+});
+
+test('each tab has its own route and survives a refresh', async ({ page }) => {
+  await mockBackend(page);
+  await page.goto('/');
+  await expect(page).toHaveURL(/\/inbox$/);
+
+  await page.getByRole('link', { name: 'Tìm kiếm' }).click();
+  await page.getByRole('searchbox').fill('dinh gia');
+  await expect(page).toHaveURL(/\/search\?q=dinh\+gia$/);
+
+  await page.reload();
+  await expect(page).toHaveURL(/\/search\?q=dinh\+gia$/);
+  await expect(page.getByRole('searchbox')).toHaveValue('dinh gia');
 });

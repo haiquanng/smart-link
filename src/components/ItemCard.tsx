@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { vi } from '@/i18n/vi';
 import { formatRelativeTime } from '@/lib/formatDate';
 import { isEnriching } from '@/lib/itemStatus';
@@ -48,19 +49,23 @@ export function ItemCard({ item, imageUrl, onDelete }: ItemCardProps) {
   const showImage = imageSrc && !imageBroken;
 
   return (
-    <article className="flex animate-fade gap-3 rounded-xl border border-line bg-white p-4 transition-colors hover:border-stone-300">
-      <div className="min-w-0 flex-1">
-        <p className="whitespace-pre-wrap break-words font-semibold leading-snug text-ink">
+    // h-full + clamped text keeps every card in the grid the same height.
+    <article className="flex h-full animate-fade gap-3 rounded-xl border border-line bg-white p-4 transition-colors hover:border-stone-300">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <p
+          title={primary}
+          className="line-clamp-2 whitespace-pre-line break-words font-semibold leading-snug text-ink"
+        >
           {primary}
         </p>
 
         {secondary && (
-          <p className="mt-1 line-clamp-2 break-words text-sm leading-snug text-stone-500">
+          <p className="mt-1 line-clamp-1 break-words text-sm leading-snug text-stone-500">
             {secondary}
           </p>
         )}
 
-        <p className="mt-2.5 flex min-w-0 items-center gap-1.5 text-xs text-stone-400">
+        <p className="mt-auto flex min-w-0 items-center gap-1.5 pt-2.5 text-xs text-stone-400">
           {item.url && !host ? (
             <a
               href={item.url}
@@ -109,16 +114,21 @@ export function ItemCard({ item, imageUrl, onDelete }: ItemCardProps) {
       )}
 
       {onDelete && (
-        <button
-          type="button"
-          aria-label={vi.inbox.delete}
-          onClick={() => {
-            if (window.confirm(vi.inbox.deleteConfirm)) onDelete(item);
-          }}
-          className="-mr-2 -mt-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-stone-400 hover:bg-stone-100 hover:text-red-600"
+        <ConfirmDialog
+          title={vi.inbox.deleteTitle}
+          description={vi.inbox.deleteDescription}
+          confirmLabel={vi.inbox.delete}
+          tone="danger"
+          onConfirm={() => onDelete(item)}
         >
-          <Trash2 size={18} aria-hidden="true" />
-        </button>
+          <button
+            type="button"
+            aria-label={vi.inbox.delete}
+            className="-mr-2 -mt-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-stone-400 hover:bg-stone-100 hover:text-red-600"
+          >
+            <Trash2 size={18} aria-hidden="true" />
+          </button>
+        </ConfirmDialog>
       )}
     </article>
   );
