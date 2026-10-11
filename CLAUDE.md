@@ -13,12 +13,13 @@ Links get sent to self or friends and become impossible to find. Existing tools 
 - iOS PWAs cannot be Share targets. Never design around that.
 - The user note is the primary search signal. Metadata and AI summary are secondary and may be missing.
 - Bottom tabs: Inbox, Search, Collections, Resurface, Settings.
+- UI: light, friendly, Gen Z aesthetic (audience skews female, heavy social-media users). NOT dark-mode by default. The web app gets its own responsive layout, not just a phone-width column. Future: user-selectable themes and animations. Current plain screens are placeholders pending a dedicated UI pass.
 
 ## Stack
 - Frontend: Vite + React + TypeScript + Tailwind, `vite-plugin-pwa`
 - Backend: Supabase (Auth, Postgres, pgvector, Storage, Edge Functions in Deno)
 - Search: Postgres full-text with `unaccent` (Vietnamese without diacritics must match) + pgvector, combined
-- AI: Claude API for summary, tags, screenshot OCR; called from Edge Functions only
+- AI: Gemini API (Google) for summary, tags, screenshot OCR, and embeddings; called from Edge Functions only. Chosen for cost (free/cheap tier); the feature tolerates modest quality.
 - Tests: Vitest (unit), Playwright (e2e)
 
 ## Layout

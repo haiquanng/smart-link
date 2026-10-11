@@ -16,10 +16,14 @@
     "gen:icons": "vite-node tests/tools/gen-icons.ts"
   },
   "dependencies": {
+    "@radix-ui/react-alert-dialog": "^1.1.24",
     "@supabase/supabase-js": "^2.45.4",
     "@tanstack/react-query": "^5.59.0",
+    "lottie-web": "^5.13.0",
+    "lucide-react": "^1.55.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-router": "^7.18.4",
     "zod": "^3.23.8"
   },
   "devDependencies": {

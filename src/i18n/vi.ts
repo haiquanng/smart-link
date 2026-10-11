@@ -11,6 +11,7 @@ export const vi = {
   },
 
   common: {
+    cancel: 'Huỷ',
     loading: 'Đang tải…',
     retry: 'Thử lại',
     error: 'Có lỗi xảy ra',
@@ -37,22 +38,58 @@ export const vi = {
     weakPassword: 'Mật khẩu cần ít nhất 6 ký tự.',
     failed: 'Email hoặc mật khẩu không đúng.',
     signOut: 'Đăng xuất',
+    heroTitle: 'Lưu link kèm ghi chú. Tìm lại trong một giây.',
+  },
+
+  add: {
+    urlPlaceholder: 'Dán link vào đây…',
+    paste: 'Dán',
+    notePlaceholder: 'Ghi chú của bạn (tuỳ chọn)',
+    save: 'Lưu',
+    saved: 'Đã lưu!',
+    failed: 'Lưu thất bại, thử lại.',
+    hint: 'Ghi chú giúp bạn tìm lại sau này.',
+    addImages: 'Thêm ảnh',
+    removeImage: 'Bỏ ảnh',
+    imageUploading: 'Đang tải lên…',
+    imageDone: 'Đã lưu',
+    imageFailed: 'Lỗi, thử lại',
+    imageReady: 'Sẵn sàng',
+    unsupportedImage: 'Chỉ nhận ảnh JPG, PNG, WebP hoặc HEIC.',
+    tooManyImages: (max: number) => `Tối đa ${max} ảnh mỗi lần.`,
   },
 
   inbox: {
     title: 'Hộp lưu',
-    empty: 'Chưa có mục nào. Lưu một link từ Shortcut để bắt đầu.',
+    count: (n: number) => `${n} mục đã lưu`,
+    emptyTitle: 'Hộp lưu đang trống',
+    empty: 'Chưa có mục nào. Dán một link ở trên để bắt đầu.',
     emptyError: 'Không tải được danh sách.',
     statusPending: 'đang xử lý',
-    statusFailed: 'làm giàu lỗi',
+    aiMade: 'Tạo bởi AI',
     noNote: '(không có ghi chú)',
+    delete: 'Xoá',
+    deleteTitle: 'Xoá mục này?',
+    deleteDescription: 'Ảnh và ghi chú của mục sẽ bị xoá. Không thể hoàn tác.',
   },
 
   search: {
     title: 'Tìm kiếm',
     placeholder: 'Tìm theo ghi chú, tiêu đề…',
-    empty: 'Không tìm thấy kết quả.',
-    hint: 'Gõ để tìm. Không dấu vẫn ra kết quả có dấu.',
+    emptyTitle: 'Không thấy gì cả',
+    empty: 'Thử từ khoá khác, hoặc gõ đúng chữ trong ghi chú của bạn.',
+    hint: 'Tìm theo ghi chú hoặc tiêu đề. Gõ không dấu cũng được. Thử:',
+    examples: ['dinh gia', 'nau an', 'review sach'],
+    filtersLabel: 'Bộ lọc tìm kiếm',
+    sourcesLabel: 'Nguồn',
+    tagsLabel: 'Thẻ',
+    timeLabel: 'Thời gian',
+    ranges: {
+      all: 'Mọi lúc',
+      '7d': '7 ngày',
+      '30d': '30 ngày',
+      '1y': '1 năm',
+    },
   },
 
   settings: {
@@ -69,6 +106,8 @@ export const vi = {
       'Đây là token của bạn. Nó chỉ hiện một lần — sao chép và lưu lại ngay.',
     revoke: 'Thu hồi',
     revoked: 'đã thu hồi',
+    revokeTitle: 'Thu hồi token này?',
+    revokeDescription: 'Shortcut đang dùng token này sẽ ngừng lưu được link.',
     lastUsed: 'dùng lần cuối',
     neverUsed: 'chưa dùng',
     noTokens: 'Chưa có token nào.',
@@ -76,6 +115,16 @@ export const vi = {
     shortcutGuide:
       'Tạo Shortcut nhận dữ liệu từ Share Sheet, hỏi ghi chú, rồi POST JSON {url, note, channel:"shortcut"} kèm header Authorization: Bearer <token> tới endpoint ingest.',
     endpointLabel: 'Endpoint',
+  },
+
+  sources: {
+    facebook: 'Facebook',
+    instagram: 'Instagram',
+    threads: 'Threads',
+    substack: 'Substack',
+    web: 'Web',
+    screenshot: 'Ảnh chụp',
+    other: 'Ghi chú',
   },
 
   placeholder: {

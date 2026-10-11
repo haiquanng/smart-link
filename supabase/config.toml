@@ -15,3 +15,9 @@ major_version = 15
 
 [functions.ingest]
 verify_jwt = false
+
+[functions.enrich]
+verify_jwt = false
+
+[functions.sweep-screenshots]
+verify_jwt = false

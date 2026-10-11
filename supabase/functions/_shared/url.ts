@@ -12,7 +12,16 @@ export type Source =
   | 'screenshot'
   | 'other';
 
-const TRACKING_PARAMS = new Set(['mibextid', 'fbclid', 'igshid', 'igsh', 'si']);
+// rdid/share_url are added by Facebook's /share/ redirect and differ per share.
+const TRACKING_PARAMS = new Set([
+  'mibextid',
+  'fbclid',
+  'igshid',
+  'igsh',
+  'si',
+  'rdid',
+  'share_url',
+]);
 
 function isTrackingParam(key: string): boolean {
   const lower = key.toLowerCase();

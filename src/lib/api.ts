@@ -1,10 +1,43 @@
 import type { Session } from '@supabase/supabase-js';
+import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
+import { env } from '@/lib/env';
 import { generateApiToken, hashApiToken } from '@/lib/apiToken';
+import { sourceSchema } from '@/lib/ingestPayload';
+import { EMPTY_FILTERS, toRequestFilters, type SearchFilters } from '@/lib/searchParams';
 import type { ApiToken, Item } from '@/types/item';
 
 const ITEM_COLUMNS =
-  'id, url, url_normalized, source, channel, note, title, summary, content_text, image_path, preview_image_url, status, seen_at, created_at';
+  'id, url, url_normalized, source, channel, note, title, title_origin, summary, content_text, image_path, preview_image_url, status, enrich_attempts, seen_at, created_at';
+
+// Loose on purpose: the function owns the row shape, we only need a list.
+const searchResponseSchema = z.object({
+  items: z.array(
+    z.object({ id: z.string(), source: sourceSchema, created_at: z.string() }).passthrough(),
+  ),
+  semantic: z.boolean(),
+});
+const tagCountsSchema = z.array(
+  z.object({ name: z.string(), item_count: z.number() }),
+);
+export type TagCount = z.infer<typeof tagCountsSchema>[number];
+
+const SCREENSHOT_BUCKET = 'screenshots';
+export const SIGNED_URL_TTL_SECONDS = 3600;
+
+async function postIngest(body: Record<string, unknown>): Promise<void> {
+  const session = await api.getSession();
+  if (!session) throw new Error('not signed in');
+  const res = await fetch(`${env.VITE_SUPABASE_URL}/functions/v1/ingest`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`save failed (${res.status})`);
+}
 
 /** The only module that talks to Supabase. Components/hooks call these. */
 export const api = {
@@ -55,16 +88,89 @@ export const api = {
     return (data ?? []) as Item[];
   },
 
-  async searchItems(query: string, limit = 50): Promise<Item[]> {
-    const trimmed = query.trim();
-    if (!trimmed) return [];
-    const { data, error } = await supabase.rpc('search_items', {
-      query: trimmed,
-      filters: {},
-      max_results: limit,
+  /** In-app capture (channel #2). Goes through the single ingest endpoint
+   *  using the session JWT, so normalize/dedupe/enrich stay server-side. */
+  async saveLink(url: string, note: string): Promise<void> {
+    await postIngest({
+      url: url.trim() || undefined,
+      note: note.trim() || undefined,
+      channel: 'manual',
+    });
+  },
+
+  /** Screenshot capture: upload to the private bucket with the user session,
+   *  then ingest verifies ownership and the object before saving the row. */
+  async saveScreenshot(image: Blob, url: string, note: string): Promise<void> {
+    const session = await api.getSession();
+    if (!session) throw new Error('not signed in');
+    const path = `${session.user.id}/${crypto.randomUUID()}.jpg`;
+    const bucket = supabase.storage.from(SCREENSHOT_BUCKET);
+
+    const { error } = await bucket.upload(path, image, {
+      contentType: 'image/jpeg',
+      upsert: false,
     });
     if (error) throw error;
-    return (data ?? []) as Item[];
+
+    try {
+      await postIngest({
+        url: url.trim() || undefined,
+        note: note.trim() || undefined,
+        channel: 'upload',
+        image_path: path,
+      });
+    } catch (err) {
+      // Best effort; the daily sweep collects whatever this misses.
+      await bucket.remove([path]).catch(() => undefined);
+      throw err;
+    }
+  },
+
+  /** Row first so the item disappears even if storage is down; a leftover
+   *  object is collected by the sweep. */
+  async deleteItem(item: Pick<Item, 'id' | 'image_path'>): Promise<void> {
+    const { error } = await supabase.from('items').delete().eq('id', item.id);
+    if (error) throw error;
+    if (item.image_path) {
+      try {
+        await supabase.storage.from(SCREENSHOT_BUCKET).remove([item.image_path]);
+      } catch {
+        /* swept later */
+      }
+    }
+  },
+
+  /** One batched request for every visible screenshot. */
+  async getSignedImageUrls(paths: string[]): Promise<Record<string, string>> {
+    if (paths.length === 0) return {};
+    const { data, error } = await supabase.storage
+      .from(SCREENSHOT_BUCKET)
+      .createSignedUrls(paths, SIGNED_URL_TTL_SECONDS);
+    if (error) throw error;
+    const urls: Record<string, string> = {};
+    for (const entry of data ?? []) {
+      if (entry.path && entry.signedUrl) urls[entry.path] = entry.signedUrl;
+    }
+    return urls;
+  },
+
+  /** Hybrid search via the `search` edge function (query embedding stays
+   *  server-side). The user JWT is attached by the client. */
+  async searchItems(query: string, filters: SearchFilters = EMPTY_FILTERS): Promise<Item[]> {
+    const trimmed = query.trim();
+    if (!trimmed) return [];
+    const { data, error } = await supabase.functions.invoke('search', {
+      body: { query: trimmed, filters: toRequestFilters(filters, new Date()) },
+    });
+    if (error) throw error;
+    return searchResponseSchema.parse(data).items as unknown as Item[];
+  },
+
+  /** The caller's most used tags, for the search filter chips. */
+  async listTopTags(): Promise<TagCount[]> {
+    const { data, error } = await supabase.rpc('user_tags');
+    if (error) throw error;
+    return tagCountsSchema.parse(data ?? []);
   },
 
   // --- API tokens ---------------------------------------------------------

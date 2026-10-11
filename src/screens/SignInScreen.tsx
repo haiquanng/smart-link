@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '@/lib/api';
+import { Wordmark } from '@/components/Wordmark';
 import { vi } from '@/i18n/vi';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -31,7 +32,6 @@ export function SignInScreen() {
       if (mode === 'signup') {
         const { needsConfirmation } = await api.signUp(email.trim(), password);
         if (needsConfirmation) setNotice(vi.auth.needConfirm);
-        // Otherwise the session change signs the user in automatically.
       } else {
         await api.signIn(email.trim(), password);
       }
@@ -44,72 +44,75 @@ export function SignInScreen() {
 
   const isSignUp = mode === 'signup';
 
+  const field =
+    'min-h-[48px] rounded-lg border border-line bg-white px-3.5 text-[15px] text-ink outline-none placeholder:text-stone-400 focus:border-stone-400';
+
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 px-6">
-      <div className="text-center">
-        <h1 className="text-2xl font-semibold text-slate-100">{vi.appName}</h1>
-        <p className="mt-1 text-sm text-slate-400">{vi.tagline}</p>
+    <main className="flex min-h-dvh items-center justify-center px-5 py-10">
+      <div className="w-full max-w-sm animate-fade">
+        <Wordmark large />
+        <p className="mt-2 text-stone-500">{vi.auth.heroTitle}</p>
+
+        <form onSubmit={onSubmit} className="mt-10 flex flex-col gap-3">
+          <h2 className="text-lg font-semibold text-ink">
+            {isSignUp ? vi.auth.signUpTitle : vi.auth.signInTitle}
+          </h2>
+
+          <label className="sr-only" htmlFor="email">
+            {vi.auth.emailLabel}
+          </label>
+          <input
+            id="email"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder={vi.auth.emailPlaceholder}
+            className={field}
+          />
+
+          <label className="sr-only" htmlFor="password">
+            {vi.auth.passwordLabel}
+          </label>
+          <input
+            id="password"
+            type="password"
+            autoComplete={isSignUp ? 'new-password' : 'current-password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder={vi.auth.passwordPlaceholder}
+            className={field}
+          />
+
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          {notice && <p className="text-sm text-emerald-700">{notice}</p>}
+
+          <button
+            type="submit"
+            disabled={busy}
+            className="mt-1 min-h-[48px] rounded-lg bg-ink px-4 font-semibold text-white hover:bg-stone-800 disabled:bg-stone-400"
+          >
+            {busy
+              ? vi.auth.working
+              : isSignUp
+                ? vi.auth.signUpAction
+                : vi.auth.signInAction}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setMode(isSignUp ? 'signin' : 'signup');
+              setError(null);
+              setNotice(null);
+            }}
+            className="min-h-[44px] text-sm text-stone-500 underline-offset-2 hover:text-ink hover:underline"
+          >
+            {isSignUp ? vi.auth.toggleToSignIn : vi.auth.toggleToSignUp}
+          </button>
+        </form>
       </div>
-
-      <form onSubmit={onSubmit} className="flex flex-col gap-3">
-        <h2 className="text-lg font-medium text-slate-200">
-          {isSignUp ? vi.auth.signUpTitle : vi.auth.signInTitle}
-        </h2>
-
-        <label className="text-sm text-slate-300" htmlFor="email">
-          {vi.auth.emailLabel}
-        </label>
-        <input
-          id="email"
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder={vi.auth.emailPlaceholder}
-          className="min-h-[48px] rounded-lg border border-slate-700 bg-slate-800 px-4 text-slate-100 outline-none focus:border-sky-500"
-        />
-
-        <label className="text-sm text-slate-300" htmlFor="password">
-          {vi.auth.passwordLabel}
-        </label>
-        <input
-          id="password"
-          type="password"
-          autoComplete={isSignUp ? 'new-password' : 'current-password'}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder={vi.auth.passwordPlaceholder}
-          className="min-h-[48px] rounded-lg border border-slate-700 bg-slate-800 px-4 text-slate-100 outline-none focus:border-sky-500"
-        />
-
-        {error && <p className="text-sm text-rose-400">{error}</p>}
-        {notice && <p className="text-sm text-emerald-400">{notice}</p>}
-
-        <button
-          type="submit"
-          disabled={busy}
-          className="min-h-[48px] rounded-lg bg-sky-600 px-4 font-medium text-white active:bg-sky-700 disabled:opacity-60"
-        >
-          {busy
-            ? vi.auth.working
-            : isSignUp
-              ? vi.auth.signUpAction
-              : vi.auth.signInAction}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setMode(isSignUp ? 'signin' : 'signup');
-            setError(null);
-            setNotice(null);
-          }}
-          className="min-h-[44px] text-sm text-sky-400 active:text-sky-300"
-        >
-          {isSignUp ? vi.auth.toggleToSignIn : vi.auth.toggleToSignUp}
-        </button>
-      </form>
     </main>
   );
 }

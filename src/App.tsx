@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { BottomTabs, type TabId } from '@/components/BottomTabs';
+import { Navigate, Route, Routes } from 'react-router';
+import { BottomTabs } from '@/components/BottomTabs';
+import { SideNav } from '@/components/SideNav';
 import { Spinner } from '@/components/Spinner';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
 import { SignInScreen } from '@/screens/SignInScreen';
@@ -11,7 +12,6 @@ import { vi } from '@/i18n/vi';
 
 export default function App() {
   const { session, loading } = useSession();
-  const [tab, setTab] = useState<TabId>('inbox');
 
   if (loading) {
     return (
@@ -21,32 +21,45 @@ export default function App() {
     );
   }
 
+  // Sign-in renders in place without changing the URL, so the user lands back
+  // on the page they opened once signed in.
   if (!session) {
     return <SignInScreen />;
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col">
-      <main className="flex-1">
-        {tab === 'inbox' && <InboxScreen />}
-        {tab === 'search' && <SearchScreen />}
-        {tab === 'collections' && (
-          <PlaceholderScreen
-            title={vi.tabs.collections}
-            message={vi.placeholder.collections}
+    <div className="lg:flex">
+      <SideNav email={session.user.email} />
+      <main className="mx-auto min-h-dvh w-full max-w-2xl pb-24 lg:max-w-5xl lg:px-10 lg:pb-12">
+        <Routes>
+          <Route path="/inbox" element={<InboxScreen />} />
+          <Route path="/search" element={<SearchScreen />} />
+          <Route
+            path="/collections"
+            element={
+              <PlaceholderScreen
+                title={vi.tabs.collections}
+                message={vi.placeholder.collections}
+              />
+            }
           />
-        )}
-        {tab === 'resurface' && (
-          <PlaceholderScreen
-            title={vi.tabs.resurface}
-            message={vi.placeholder.resurface}
+          <Route
+            path="/resurface"
+            element={
+              <PlaceholderScreen
+                title={vi.tabs.resurface}
+                message={vi.placeholder.resurface}
+              />
+            }
           />
-        )}
-        {tab === 'settings' && (
-          <SettingsScreen email={session.user.email} />
-        )}
+          <Route
+            path="/settings"
+            element={<SettingsScreen email={session.user.email} />}
+          />
+          <Route path="*" element={<Navigate to="/inbox" replace />} />
+        </Routes>
       </main>
-      <BottomTabs active={tab} onChange={setTab} />
+      <BottomTabs />
     </div>
   );
 }

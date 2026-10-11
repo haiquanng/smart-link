@@ -1,12 +1,17 @@
 import type { Source } from '@/lib/ingestPayload';
 
-/** Exact tracking params to drop, plus any `utm_*` prefix (business rule 4). */
+/**
+ * Exact tracking params to drop, plus any `utm_*` prefix (business rule 4).
+ * rdid/share_url are added by Facebook's /share/ redirect and differ per share.
+ */
 const TRACKING_PARAMS = new Set([
   'mibextid',
   'fbclid',
   'igshid',
   'igsh',
   'si',
+  'rdid',
+  'share_url',
 ]);
 
 function isTrackingParam(key: string): boolean {
