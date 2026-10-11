@@ -42,9 +42,18 @@ Set the same value as an edge function secret: `supabase secrets set CRON_SECRET
 - Deno functions are not type-checked by CI (no `deno` in the dev environment so far); run `deno check supabase/functions/*/index.ts` when available. Pure logic is unit-tested in `src/lib` and mirrored in `supabase/functions/_shared` (`aiPatch.ts`, `geminiParse.ts`, `metadata.ts`); keep mirrors in sync.
 - Integration coverage for enrich with a mocked Gemini is not practical in the edge runtime; the pure parts are covered by unit tests.
 
-## Open questions
-- Query embeddings for Phase 4 search: `task: search result | query: {q}`. Not built yet.
+## Phase 4 search setup
+- Push the migration (`supabase db push`): `20261011000006` replaces `search_items` with the hybrid version, adds `user_tags()`, and re-queues pre-AI items (`ready` with no embedding -> `pending`, attempts 0). The `retry-enrich` cron then embeds them gradually, 10 per 15 min, so a large backlog takes a while; search works on full text meanwhile.
+- Deploy the function: `supabase functions deploy search` (JWT verification stays on). It needs `GEMINI_API_KEY` (already set for enrich); without it search is full-text only (`semantic: false`). `SUPABASE_URL` and `SUPABASE_ANON_KEY` are provided by the Supabase runtime.
+- `supabase/functions/_shared/searchBody.ts` mirrors `src/lib/searchBody.ts`; `queryEmbeddingText` is mirrored in `geminiParse.ts`. Keep in sync.
+- The SQL has not been run in CI (no local Supabase); try a search with and without filters after pushing.
 
+## Vercel deploy
+- Project settings -> Environment Variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (anon key only).
+- Supabase Auth -> URL Configuration: set Site URL to the production domain and add the Vercel domain (and preview pattern if wanted) to Redirect URLs.
+- `vercel.json` at the repo root handles the SPA fallback and keeps `sw.js` uncached so updates reach installed PWAs.
+
+## Open questions
 ## Resolved
 - Enrich runs via a fire-and-forget call from ingest (non-blocking), re-runnable on demand, with a pg_cron retry fallback (`retry-enrich`).
 - Embedding: `gemini-embedding-2`, 768 dims (auto-normalized). Documents embedded as `title: {title} | text: {note}\n{summary}\n{ocr}`, max ~6000 chars. Switching models requires re-embedding everything.

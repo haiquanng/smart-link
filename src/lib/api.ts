@@ -1,11 +1,26 @@
 import type { Session } from '@supabase/supabase-js';
+import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 import { env } from '@/lib/env';
 import { generateApiToken, hashApiToken } from '@/lib/apiToken';
+import { sourceSchema } from '@/lib/ingestPayload';
+import { EMPTY_FILTERS, toRequestFilters, type SearchFilters } from '@/lib/searchParams';
 import type { ApiToken, Item } from '@/types/item';
 
 const ITEM_COLUMNS =
   'id, url, url_normalized, source, channel, note, title, title_origin, summary, content_text, image_path, preview_image_url, status, enrich_attempts, seen_at, created_at';
+
+// Loose on purpose: the function owns the row shape, we only need a list.
+const searchResponseSchema = z.object({
+  items: z.array(
+    z.object({ id: z.string(), source: sourceSchema, created_at: z.string() }).passthrough(),
+  ),
+  semantic: z.boolean(),
+});
+const tagCountsSchema = z.array(
+  z.object({ name: z.string(), item_count: z.number() }),
+);
+export type TagCount = z.infer<typeof tagCountsSchema>[number];
 
 const SCREENSHOT_BUCKET = 'screenshots';
 export const SIGNED_URL_TTL_SECONDS = 3600;
@@ -139,16 +154,23 @@ export const api = {
     return urls;
   },
 
-  async searchItems(query: string, limit = 50): Promise<Item[]> {
+  /** Hybrid search via the `search` edge function (query embedding stays
+   *  server-side). The user JWT is attached by the client. */
+  async searchItems(query: string, filters: SearchFilters = EMPTY_FILTERS): Promise<Item[]> {
     const trimmed = query.trim();
     if (!trimmed) return [];
-    const { data, error } = await supabase.rpc('search_items', {
-      query: trimmed,
-      filters: {},
-      max_results: limit,
+    const { data, error } = await supabase.functions.invoke('search', {
+      body: { query: trimmed, filters: toRequestFilters(filters, new Date()) },
     });
     if (error) throw error;
-    return (data ?? []) as Item[];
+    return searchResponseSchema.parse(data).items as unknown as Item[];
+  },
+
+  /** The caller's most used tags, for the search filter chips. */
+  async listTopTags(): Promise<TagCount[]> {
+    const { data, error } = await supabase.rpc('user_tags');
+    if (error) throw error;
+    return tagCountsSchema.parse(data ?? []);
   },
 
   // --- API tokens ---------------------------------------------------------

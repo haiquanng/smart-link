@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Trash2 } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { vi } from '@/i18n/vi';
 import { formatRelativeTime } from '@/lib/formatDate';
+import { cardHref } from '@/lib/itemLink';
 import { isEnriching } from '@/lib/itemStatus';
 import type { Item } from '@/types/item';
 import type { Source } from '@/lib/ingestPayload';
@@ -29,6 +30,21 @@ const SOURCE_COLOR: Record<Source, string> = {
 
 const SOCIAL = new Set<Source>(['facebook', 'instagram', 'threads']);
 
+function MainArea({ href, children }: { href: string | null; children: ReactNode }) {
+  const layout = 'flex min-w-0 flex-1 gap-3';
+  if (!href) return <div className={layout}>{children}</div>;
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`${layout} rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-accent`}
+    >
+      {children}
+    </a>
+  );
+}
+
 interface ItemCardProps {
   item: Item;
   /** Signed URL of the uploaded screenshot; wins over the scraped preview. */
@@ -45,91 +61,70 @@ export function ItemCard({ item, imageUrl, onDelete }: ItemCardProps) {
   const primary = item.note ?? item.title ?? item.summary ?? vi.inbox.noNote;
   // Rule 14 order: note, then title, then summary; the second line shows
   // whichever comes next after the primary one.
-  const secondary = item.note
-    ? (item.title ?? item.summary)
-    : item.title
-      ? item.summary
-      : null;
+  const secondary = item.note ? (item.title ?? item.summary) : item.title ? item.summary : null;
   // Rule 8: AI-made content must be visibly distinct from the user's own.
   const aiTitle = !item.note && !!item.title && item.title_origin === 'ai';
   const enriching = isEnriching(item, Date.now());
   const imageSrc = imageUrl ?? item.preview_image_url;
   const showImage = imageSrc && !imageBroken;
+  const href = cardHref(item, imageUrl);
 
   return (
     // h-full + clamped text keeps every card in the grid the same height.
     <article className="flex h-full animate-fade gap-3 rounded-xl border border-line bg-white p-4 transition-colors hover:border-stone-300">
-      <div className="flex min-w-0 flex-1 flex-col">
-        <p
-          title={primary}
-          className="line-clamp-2 whitespace-pre-line break-words font-semibold leading-snug text-ink"
-        >
-          {primary}
-          {aiTitle && (
-            <span
-              role="img"
-              aria-label={vi.inbox.aiMade}
-              title={vi.inbox.aiMade}
-              className="ml-1.5 inline-block rounded bg-stone-100 px-1 align-middle text-[10px] font-bold leading-4 text-stone-500"
-            >
-              AI
-            </span>
-          )}
-        </p>
-
-        {secondary && (
-          <p className="mt-1 line-clamp-1 break-words text-sm leading-snug text-stone-500">
-            {secondary}
+      <MainArea href={href}>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <p
+            title={primary}
+            className="line-clamp-2 whitespace-pre-line break-words font-semibold leading-snug text-ink"
+          >
+            {primary}
+            {aiTitle && (
+              <span
+                role="img"
+                aria-label={vi.inbox.aiMade}
+                title={vi.inbox.aiMade}
+                className="ml-1.5 inline-block rounded bg-stone-100 px-1 align-middle text-[10px] font-bold leading-4 text-stone-500"
+              >
+                AI
+              </span>
+            )}
           </p>
-        )}
 
-        <p className="mt-auto flex min-w-0 items-center gap-1.5 pt-2.5 text-xs text-stone-400">
-          {item.url && !host ? (
-            <a
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`shrink-0 font-semibold underline-offset-2 hover:underline ${SOURCE_COLOR[item.source]}`}
-            >
-              {vi.sources[item.source]}
-            </a>
-          ) : (
+          {secondary && (
+            <p className="mt-1 line-clamp-1 break-words text-sm leading-snug text-stone-500">
+              {secondary}
+            </p>
+          )}
+
+          <p className="mt-auto flex min-w-0 items-center gap-1.5 pt-2.5 text-xs text-stone-400">
             <span className={`shrink-0 font-semibold ${SOURCE_COLOR[item.source]}`}>
               {vi.sources[item.source]}
             </span>
-          )}
-          {host && (
-            <>
-              <span aria-hidden="true">·</span>
-              <a
-                href={item.url ?? undefined}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="truncate underline-offset-2 hover:text-ink hover:underline"
-              >
-                {host}
-              </a>
-            </>
-          )}
-          <span aria-hidden="true">·</span>
-          <span className="shrink-0">{formatRelativeTime(item.created_at)}</span>
-          {enriching && (
-            <span className="shrink-0 text-accent">· {vi.inbox.statusPending}</span>
-          )}
-        </p>
-      </div>
+            {host && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span className="truncate">{host}</span>
+              </>
+            )}
+            <span aria-hidden="true">·</span>
+            <span className="shrink-0">{formatRelativeTime(item.created_at)}</span>
+            {enriching && <span className="shrink-0 text-accent">· {vi.inbox.statusPending}</span>}
+          </p>
+        </div>
 
-      {showImage && (
-        <img
-          src={imageSrc}
-          alt=""
-          loading="lazy"
-          // Social CDNs often reject hotlinks that carry our origin as referrer.
-          referrerPolicy="no-referrer"
-          onError={() => setImageBroken(true)}
-          className="h-[72px] w-[72px] shrink-0 rounded-lg border border-line bg-stone-100 object-cover"
-        />
-      )}
+        {showImage && (
+          <img
+            src={imageSrc}
+            alt=""
+            loading="lazy"
+            // Social CDNs often reject hotlinks that carry our origin as referrer.
+            referrerPolicy="no-referrer"
+            onError={() => setImageBroken(true)}
+            className="h-[72px] w-[72px] shrink-0 rounded-lg border border-line bg-stone-100 object-cover"
+          />
+        )}
+      </MainArea>
 
       {onDelete && (
         <ConfirmDialog

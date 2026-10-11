@@ -56,12 +56,17 @@ function promptText(input: AiInput): string {
   return lines.join('\n') || 'Không có văn bản; chỉ có ảnh.';
 }
 
-async function post(config: GeminiConfig, path: string, body: unknown): Promise<unknown> {
+async function post(
+  config: GeminiConfig,
+  path: string,
+  body: unknown,
+  timeoutMs = REQUEST_TIMEOUT_MS,
+): Promise<unknown> {
   const res = await fetch(`${BASE}/${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': config.apiKey },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   if (!res.ok) throw new Error(`gemini ${res.status}`);
   return await res.json();
@@ -86,12 +91,21 @@ export async function generateAi(config: GeminiConfig, input: AiInput): Promise<
   return result;
 }
 
-export async function embedText(config: GeminiConfig, text: string): Promise<number[]> {
-  const body = await post(config, `${EMBED_MODEL}:embedContent`, {
-    model: `models/${EMBED_MODEL}`,
-    content: { parts: [{ text }] },
-    outputDimensionality: EMBEDDING_DIMS,
-  });
+export async function embedText(
+  config: GeminiConfig,
+  text: string,
+  timeoutMs?: number,
+): Promise<number[]> {
+  const body = await post(
+    config,
+    `${EMBED_MODEL}:embedContent`,
+    {
+      model: `models/${EMBED_MODEL}`,
+      content: { parts: [{ text }] },
+      outputDimensionality: EMBEDDING_DIMS,
+    },
+    timeoutMs,
+  );
   const values = parseEmbedResponse(body);
   if (!values) throw new Error('gemini invalid embedding');
   return values;

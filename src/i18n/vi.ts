@@ -80,6 +80,16 @@ export const vi = {
     empty: 'Thử từ khoá khác, hoặc gõ đúng chữ trong ghi chú của bạn.',
     hint: 'Tìm theo ghi chú hoặc tiêu đề. Gõ không dấu cũng được. Thử:',
     examples: ['dinh gia', 'nau an', 'review sach'],
+    filtersLabel: 'Bộ lọc tìm kiếm',
+    sourcesLabel: 'Nguồn',
+    tagsLabel: 'Thẻ',
+    timeLabel: 'Thời gian',
+    ranges: {
+      all: 'Mọi lúc',
+      '7d': '7 ngày',
+      '30d': '30 ngày',
+      '1y': '1 năm',
+    },
   },
 
   settings: {

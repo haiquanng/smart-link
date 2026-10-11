@@ -108,6 +108,12 @@ async function mockBackend(page: Page) {
       });
       return ok(route, { status: 'pending', duplicate: false }, 201);
     }
+    if (pathname === '/functions/v1/search') {
+      return ok(route, { items: [], semantic: false });
+    }
+    if (pathname === '/rest/v1/rpc/user_tags') {
+      return ok(route, [{ name: 'saas', item_count: 3 }]);
+    }
     return ok(route, {}, 404);
   });
 }
@@ -159,4 +165,25 @@ test('each tab has its own route and survives a refresh', async ({ page }) => {
   await page.reload();
   await expect(page).toHaveURL(/\/search\?q=dinh\+gia$/);
   await expect(page.getByRole('searchbox')).toHaveValue('dinh gia');
+});
+
+test('source filter chips live in the URL and survive a refresh', async ({ page }) => {
+  await mockBackend(page);
+  await page.goto('/search?q=dinh+gia');
+
+  const facebook = page.getByRole('button', { name: 'Facebook', exact: true });
+  expect((await facebook.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+  await facebook.click();
+  await expect(page).toHaveURL(/src=facebook/);
+  await expect(page).toHaveURL(/q=dinh\+gia/);
+
+  await page.reload();
+  await expect(page).toHaveURL(/src=facebook/);
+  await expect(facebook).toHaveAttribute('aria-pressed', 'true');
+
+  await page.getByRole('button', { name: '#saas' }).click();
+  await expect(page).toHaveURL(/tag=saas/);
+
+  await facebook.click();
+  await expect(page).not.toHaveURL(/src=/);
 });

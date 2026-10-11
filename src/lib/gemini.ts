@@ -64,3 +64,8 @@ export function embeddingText(input: EmbeddingInput): string {
   );
   return parts.join('\n').slice(0, EMBEDDING_TEXT_MAX);
 }
+
+/** Query format for gemini-embedding-2 retrieval; pairs with embeddingText. */
+export function queryEmbeddingText(query: string): string {
+  return `task: search result | query: ${query.trim()}`;
+}

@@ -4,6 +4,7 @@ import {
   embeddingText,
   parseEmbedResponse,
   parseGenerateResponse,
+  queryEmbeddingText,
 } from '@/lib/gemini';
 
 function generateBody(text: string): unknown {
@@ -64,5 +65,13 @@ describe('embeddingText', () => {
   it('truncates to 6000 chars', () => {
     const text = embeddingText({ title: 'T', note: 'n'.repeat(9000), summary: null, ocr: null });
     expect(text).toHaveLength(6000);
+  });
+});
+
+describe('queryEmbeddingText', () => {
+  it('uses the search-result task format', () => {
+    expect(queryEmbeddingText('  dinh gia SaaS ')).toBe(
+      'task: search result | query: dinh gia SaaS',
+    );
   });
 });

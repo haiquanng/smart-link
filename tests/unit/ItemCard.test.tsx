@@ -117,4 +117,36 @@ describe('ItemCard', () => {
     );
     expect(screen.getByText('Tóm tắt ngắn')).toBeInTheDocument();
   });
+
+  describe('link target', () => {
+    it('opens the saved url in a new tab', () => {
+      render(<ItemCard item={base} imageUrl="https://signed.example/s.jpg" />);
+      const link = screen.getByRole('link');
+      expect(link).toHaveAttribute('href', base.url);
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    });
+
+    it('opens the signed screenshot for screenshot-only items', () => {
+      render(
+        <ItemCard
+          item={{ ...base, url: null, source: 'screenshot', image_path: 'u/a.jpg' }}
+          imageUrl="https://signed.example/s.jpg"
+        />,
+      );
+      expect(screen.getByRole('link')).toHaveAttribute('href', 'https://signed.example/s.jpg');
+    });
+
+    it('is not a link without url or image', () => {
+      render(<ItemCard item={{ ...base, url: null, source: 'other' }} />);
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    });
+
+    it('keeps the delete button outside the link', () => {
+      render(<ItemCard item={base} onDelete={vi.fn()} />);
+      const link = screen.getByRole('link');
+      expect(within(link).queryByRole('button')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Xoá' })).toBeInTheDocument();
+    });
+  });
 });

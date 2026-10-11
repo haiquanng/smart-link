@@ -100,7 +100,11 @@ Screenshot upload: the client downscales to JPEG, uploads to `screenshots/{user_
 At least one of `url`, `note`, or `image_path` is required.
 
 ## Search
-`search_items(query text, filters jsonb, limit int)` returns items ranked by `0.6 * fts_rank + 0.4 * vector_similarity`, with `unaccent` applied to the query. If no embedding exists yet, fall back to full-text only. Filters: source, tag, collection, date range.
+`search_items(query text, query_embedding vector(768), filters jsonb, max_results int)` (security invoker, RLS applies) returns items ranked by `0.6 * fts_score + 0.4 * cosine_similarity`, where `fts_score = ts_rank(fts, q, 32)` scaled so the best text match in the result set is 1 and `unaccent` is applied to the query. Candidates = full-text matches ∪ the 50 nearest embeddings with cosine similarity >= 0.65 (measured: unrelated ~0.55-0.60, related ~0.70). If `query_embedding` is null or an item has no embedding, that item is ranked by full text only (business rule 12). Filters (all optional): `sources text[]`, `tags text[]` (any), `collection_id uuid`, `from`/`to` timestamptz.
+
+The browser calls Edge Function `search` (`POST /functions/v1/search`, user JWT, body `{ query, filters }` validated by Zod). It embeds the query with `gemini-embedding-2` (`task: search result | query: {q}`, 768 dims, ~2s timeout) and calls `search_items` with the caller's JWT so RLS still applies. If embedding fails, it calls with `query_embedding = null`. The Gemini key never reaches the browser.
+
+Tapping a card opens the original source (`url`, or the signed screenshot for screenshot-only items). There is no in-app detail view.
 
 ## Known limits
 - Facebook, Instagram, Threads often block content fetch. The note and screenshot cover this.
