@@ -1,0 +1,35 @@
+{
+  "_comment": "Real-looking capture URLs for tests. Includes /share/ redirects and tracking params that normalizeUrl (Phase 1) must handle. Replace/extend with real captured URLs from the Phase 0 spike.",
+  "cases": [
+    {
+      "source": "facebook",
+      "label": "share redirect + mibextid",
+      "url": "https://www.facebook.com/share/1KWvE4QeZK/?mibextid=wwXlfr",
+      "note": "redirects to a real post URL; must follow before dedupe"
+    },
+    {
+      "source": "facebook",
+      "label": "post with fbclid",
+      "url": "https://www.facebook.com/photo.php?fbid=100&set=a.1&fbclid=IwAR_abc123",
+      "note": "strip fbclid"
+    },
+    {
+      "source": "instagram",
+      "label": "reel with igshid + utm",
+      "url": "https://www.instagram.com/reel/C9xYz1AbCdE/?igshid=MzRlODBiNWFlZA%3D%3D&utm_source=ig_web_copy_link",
+      "note": "strip igshid and utm_*"
+    },
+    {
+      "source": "threads",
+      "label": "post",
+      "url": "https://www.threads.net/@someuser/post/C9abcdefghi",
+      "note": "often shared as a text blob, not a bare URL"
+    },
+    {
+      "source": "substack",
+      "label": "article with utm",
+      "url": "https://someone.substack.com/p/how-to-price-saas?utm_source=substack&utm_medium=email",
+      "note": "strip utm_*"
+    }
+  ]
+}

@@ -13,7 +13,7 @@ PWA (Inbox | Search | Collections | Resurface | Settings)
 | Part | Tech | Notes |
 |---|---|---|
 | PWA | Vite, React, TS, Tailwind, vite-plugin-pwa | Installable, offline shell, reads via Supabase |
-| Auth | Supabase Auth | Magic link first; Google optional |
+| Auth | Supabase Auth | Email + password; `profiles` row per user via trigger |
 | DB | Postgres + pgvector + unaccent | RLS on all tables |
 | Ingest | Edge Function `ingest` | Single entry for all channels |
 | Enrich | Edge Function `enrich` | Triggered after insert; idempotent; retryable |
@@ -71,6 +71,12 @@ PWA (Inbox | Search | Collections | Resurface | Settings)
     "label": "text, e.g. 'iPhone shortcut'",
     "last_used_at": "timestamptz, nullable",
     "revoked_at": "timestamptz, nullable"
+  },
+  "profiles": {
+    "id": "uuid pk fk auth.users, RLS (id = auth.uid())",
+    "email": "text",
+    "display_name": "text, nullable",
+    "created_at": "timestamptz, auto-created on signup via trigger"
   }
 }
 ```

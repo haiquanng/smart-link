@@ -22,9 +22,9 @@ Phase 0 and 1 are the biggest risk. Do not build UI polish before the Shortcut p
 4. `code-review` before merge.
 
 ## Git
-- Branch per task: `feat/<short-name>`, `fix/<short-name>`.
-- Small commits, imperative subject, no more than 72 chars.
-- No force push. Squash merge to `main`.
+- Claude never commits or pushes. Not `git commit`, not `git push`, not PRs or tags. Both are blocked in `.claude/settings.json`.
+- Claude leaves changes in the working tree and ends with a suggested branch name and commit message for the user to run.
+- User convention: branch per task `feat/<short-name>`, `fix/<short-name>`; imperative subject up to 72 chars; no force push; squash merge to `main`.
 
 ## Environment
 `.env.example` names: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (frontend); `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY` (edge function secrets only).
