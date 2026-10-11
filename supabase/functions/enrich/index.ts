@@ -11,6 +11,8 @@ import { corsHeaders, json } from '../_shared/cors.ts';
 import { fetchPageHtml } from '../_shared/fetchPage.ts';
 import { parseMetadata } from '../_shared/metadata.ts';
 import { timingSafeEqual } from '../_shared/token.ts';
+import { resolveRedirect } from '../_shared/ssrf.ts';
+import { needsRedirectResolution, normalizeUrl } from '../_shared/url.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -25,6 +27,37 @@ function itemIdOf(body: unknown): string | null {
     return typeof v === 'string' ? v : null;
   }
   return null;
+}
+
+interface ItemRow {
+  id: string;
+  user_id: string;
+  note: string | null;
+}
+
+/**
+ * Business rule 5: one row per normalized URL per user. If the resolved URL
+ * already exists, fold this item's note into it and drop this row.
+ */
+async function mergeIfDuplicate(
+  item: ItemRow,
+  resolved: string,
+): Promise<string | null> {
+  const { data: existing } = await admin
+    .from('items')
+    .select('id, note')
+    .eq('user_id', item.user_id)
+    .eq('url_normalized', resolved)
+    .neq('id', item.id)
+    .maybeSingle();
+  if (!existing) return null;
+
+  if (item.note) {
+    const merged = existing.note ? `${existing.note}\n${item.note}` : item.note;
+    await admin.from('items').update({ note: merged }).eq('id', existing.id);
+  }
+  await admin.from('items').delete().eq('id', item.id);
+  return existing.id as string;
 }
 
 Deno.serve(async (req) => {
@@ -50,7 +83,7 @@ Deno.serve(async (req) => {
 
   const { data: item, error } = await admin
     .from('items')
-    .select('id, url, title')
+    .select('id, user_id, url, url_normalized, note, title')
     .eq('id', itemId)
     .maybeSingle();
   if (error) return json({ error: 'lookup failed' }, 500);
@@ -58,9 +91,22 @@ Deno.serve(async (req) => {
 
   try {
     const patch: Record<string, unknown> = { status: 'ready' };
+    let fetchUrl = item.url;
 
-    if (item.url) {
-      const html = await fetchPageHtml(item.url);
+    // Ingest skips redirect-following to save fast; resolve Facebook /share/
+    // links here so the real post URL is used for dedupe and metadata.
+    if (item.url && needsRedirectResolution(item.url)) {
+      const resolved = await normalizeUrl(item.url, resolveRedirect);
+      if (resolved !== item.url_normalized) {
+        const mergedInto = await mergeIfDuplicate(item, resolved);
+        if (mergedInto) return json({ id: mergedInto, merged: true }, 200);
+        patch.url_normalized = resolved;
+      }
+      fetchUrl = resolved;
+    }
+
+    if (fetchUrl) {
+      const html = await fetchPageHtml(fetchUrl);
       if (html) {
         const meta = parseMetadata(html);
         // Only fill empty fields; never overwrite the user's note (rule 9).
@@ -72,7 +118,16 @@ Deno.serve(async (req) => {
     // TODO(phase-3-ai): meta/content -> Gemini summary + tags; screenshot OCR;
     // Google embedding -> patch.summary / item_tags / patch.embedding.
 
-    await admin.from('items').update(patch).eq('id', item.id);
+    const { error: updateError } = await admin
+      .from('items')
+      .update(patch)
+      .eq('id', item.id);
+    // A concurrent save can claim the resolved URL first; keep the item and
+    // its share-link URL rather than failing enrichment.
+    if (updateError?.code === '23505') {
+      delete patch.url_normalized;
+      await admin.from('items').update(patch).eq('id', item.id);
+    }
     return json({ id: item.id, status: 'ready' }, 200);
   } catch {
     await admin.from('items').update({ status: 'enrich_failed' }).eq('id', itemId);

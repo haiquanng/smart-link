@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { vi } from '@/i18n/vi';
 import { formatRelativeTime } from '@/lib/formatDate';
+import { isEnriching } from '@/lib/itemStatus';
 import type { Item } from '@/types/item';
 import type { Source } from '@/lib/ingestPayload';
 
@@ -12,15 +14,18 @@ function hostOf(url: string | null): string | null {
   }
 }
 
-const SOURCE_STYLE: Record<Source, string> = {
-  facebook: 'bg-blue-50 text-blue-600',
-  instagram: 'bg-pink-50 text-pink-600',
-  threads: 'bg-slate-100 text-slate-700',
-  substack: 'bg-orange-50 text-orange-600',
-  web: 'bg-slate-100 text-slate-600',
-  screenshot: 'bg-brand-100 text-brand-700',
-  other: 'bg-slate-100 text-slate-600',
+// Each network's own brand color, used only for the small source label.
+const SOURCE_COLOR: Record<Source, string> = {
+  facebook: 'text-[#1877f2]',
+  instagram: 'text-[#d62976]',
+  threads: 'text-ink',
+  substack: 'text-[#ff6719]',
+  web: 'text-stone-600',
+  screenshot: 'text-stone-600',
+  other: 'text-stone-600',
 };
+
+const SOCIAL = new Set<Source>(['facebook', 'instagram', 'threads']);
 
 interface ItemCardProps {
   item: Item;
@@ -28,57 +33,73 @@ interface ItemCardProps {
 
 /** Shows the user's note first, then title, then summary (business rule 14). */
 export function ItemCard({ item }: ItemCardProps) {
-  const host = hostOf(item.url);
+  const [imageBroken, setImageBroken] = useState(false);
+  // The source label already names social networks; the domain only adds
+  // information for ordinary websites.
+  const host = SOCIAL.has(item.source) ? null : hostOf(item.url);
   const primary = item.note ?? item.title ?? item.summary ?? vi.inbox.noNote;
+  const secondary = item.note ? item.title : null;
+  const enriching = isEnriching(item, Date.now());
+  const showImage = item.preview_image_url && !imageBroken;
 
   return (
-    <article className="flex gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+    <article className="flex animate-fade gap-3 rounded-xl border border-line bg-white p-4 transition-colors hover:border-stone-300">
       <div className="min-w-0 flex-1">
-        <p className="whitespace-pre-wrap break-words text-[15px] font-medium leading-snug text-slate-900">
+        <p className="whitespace-pre-wrap break-words font-semibold leading-snug text-ink">
           {primary}
         </p>
 
-        {item.note && item.title && (
-          <p className="mt-1 break-words text-sm text-slate-500">{item.title}</p>
+        {secondary && (
+          <p className="mt-1 line-clamp-2 break-words text-sm leading-snug text-stone-500">
+            {secondary}
+          </p>
         )}
 
-        <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-400">
-          <span
-            className={`rounded-full px-2 py-0.5 font-medium ${SOURCE_STYLE[item.source]}`}
-          >
-            {item.source}
-          </span>
-          {host && (
+        <p className="mt-2.5 flex min-w-0 items-center gap-1.5 text-xs text-stone-400">
+          {item.url && !host ? (
             <a
-              href={item.url ?? undefined}
+              href={item.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="truncate font-medium text-brand-600 active:text-brand-700"
+              className={`shrink-0 font-semibold underline-offset-2 hover:underline ${SOURCE_COLOR[item.source]}`}
             >
-              {host}
+              {vi.sources[item.source]}
             </a>
-          )}
-          <span>·</span>
-          <span>{formatRelativeTime(item.created_at)}</span>
-          {item.status === 'pending' && (
-            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-amber-600">
-              {vi.inbox.statusPending}
+          ) : (
+            <span className={`shrink-0 font-semibold ${SOURCE_COLOR[item.source]}`}>
+              {vi.sources[item.source]}
             </span>
           )}
-          {item.status === 'enrich_failed' && (
-            <span className="rounded-full bg-rose-50 px-2 py-0.5 text-rose-600">
-              {vi.inbox.statusFailed}
-            </span>
+          {host && (
+            <>
+              <span aria-hidden="true">·</span>
+              <a
+                href={item.url ?? undefined}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="truncate underline-offset-2 hover:text-ink hover:underline"
+              >
+                {host}
+              </a>
+            </>
           )}
-        </div>
+          <span aria-hidden="true">·</span>
+          <span className="shrink-0">{formatRelativeTime(item.created_at)}</span>
+          {enriching && (
+            <span className="shrink-0 text-accent">· {vi.inbox.statusPending}</span>
+          )}
+        </p>
       </div>
 
-      {item.preview_image_url && (
+      {showImage && (
         <img
-          src={item.preview_image_url}
+          src={item.preview_image_url ?? undefined}
           alt=""
           loading="lazy"
-          className="h-16 w-16 shrink-0 rounded-xl object-cover"
+          // Social CDNs often reject hotlinks that carry our origin as referrer.
+          referrerPolicy="no-referrer"
+          onError={() => setImageBroken(true)}
+          className="h-[72px] w-[72px] shrink-0 rounded-lg border border-line bg-stone-100 object-cover"
         />
       )}
     </article>

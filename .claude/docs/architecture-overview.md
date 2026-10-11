@@ -3,8 +3,8 @@
 ## Flow
 ```
 Capture (iOS Shortcut | in-app paste | screenshot upload | Android Share Target)
-   -> POST /functions/v1/ingest   (token auth, validate, normalizeUrl, insert status=pending)
-   -> enrich (background): fetch metadata -> OCR/summary (Gemini) -> tags -> embedding (Google) -> status=ready
+   -> POST /functions/v1/ingest   (api token or session JWT, validate, offline normalize, insert status=pending)
+   -> enrich (background): resolve FB /share/ redirect + re-dedupe -> fetch metadata -> OCR/summary (Gemini) -> tags -> embedding (Google) -> status=ready
 PWA (Inbox | Search | Collections | Resurface | Settings)
    -> Supabase client under RLS -> search_items() / tables
 ```
@@ -99,4 +99,4 @@ At least one of `url`, `note`, or an uploaded image is required.
 ## Known limits
 - Facebook, Instagram, Threads often block content fetch. The note and screenshot cover this.
 - iOS PWA cannot receive Share. iOS capture is the Shortcut, in-app paste, or screenshot upload.
-- Facebook `/share/` links must be redirected to resolve the real URL before dedupe.
+- Facebook `/share/` links must be redirected to resolve the real URL. Ingest skips this to save fast; `enrich` resolves it, updates `url_normalized`, and merges into an existing item if the resolved URL is already saved.

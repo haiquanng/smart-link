@@ -14,8 +14,8 @@ export default defineConfig({
         name: 'Smart Link',
         short_name: 'Smart Link',
         description: 'Personal link vault',
-        theme_color: '#ffffff',
-        background_color: '#f8fafc',
+        theme_color: '#fafaf9',
+        background_color: '#fafaf9',
         display: 'standalone',
         start_url: '/',
         icons: [

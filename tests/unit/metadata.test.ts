@@ -42,4 +42,12 @@ describe('parseMetadata', () => {
   it('returns empty object when there is nothing to extract', () => {
     expect(parseMetadata('<p>no meta here</p>')).toEqual({});
   });
+
+  it('decodes numeric hex and decimal entities (Vietnamese titles)', () => {
+    const html =
+      '<meta property="og:title" content="[G&#xf3;c Architecture] Khi dependency g&#x1eb7;p s&#x1ef1; c&#x1ed1; &#8211; ok">';
+    expect(parseMetadata(html).title).toBe(
+      '[Góc Architecture] Khi dependency gặp sự cố – ok',
+    );
+  });
 });

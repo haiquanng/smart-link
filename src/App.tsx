@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { BottomTabs, type TabId } from '@/components/BottomTabs';
+import { BottomTabs } from '@/components/BottomTabs';
+import { SideNav } from '@/components/SideNav';
+import type { TabId } from '@/components/navTabs';
 import { Spinner } from '@/components/Spinner';
 import { PlaceholderScreen } from '@/components/PlaceholderScreen';
 import { SignInScreen } from '@/screens/SignInScreen';
@@ -26,8 +28,9 @@ export default function App() {
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-md flex-col">
-      <main className="flex-1">
+    <div className="lg:flex">
+      <SideNav active={tab} onChange={setTab} email={session.user.email} />
+      <main className="mx-auto min-h-dvh w-full max-w-2xl pb-24 lg:max-w-5xl lg:px-10 lg:pb-12">
         {tab === 'inbox' && <InboxScreen />}
         {tab === 'search' && <SearchScreen />}
         {tab === 'collections' && (
@@ -42,9 +45,7 @@ export default function App() {
             message={vi.placeholder.resurface}
           />
         )}
-        {tab === 'settings' && (
-          <SettingsScreen email={session.user.email} />
-        )}
+        {tab === 'settings' && <SettingsScreen email={session.user.email} />}
       </main>
       <BottomTabs active={tab} onChange={setTab} />
     </div>

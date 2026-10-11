@@ -22,7 +22,7 @@ export function CopyButton({ value, label }: CopyButtonProps) {
   return (
     <button
       onClick={onCopy}
-      className="min-h-[44px] shrink-0 rounded-xl bg-slate-100 px-4 text-sm font-medium text-slate-700 active:bg-slate-200"
+      className="min-h-[44px] shrink-0 rounded-lg border border-line bg-white px-4 text-sm font-medium text-ink hover:bg-stone-50"
     >
       {copied ? vi.common.copied : (label ?? vi.common.copy)}
     </button>

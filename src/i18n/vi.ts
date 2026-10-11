@@ -37,32 +37,36 @@ export const vi = {
     weakPassword: 'Mật khẩu cần ít nhất 6 ký tự.',
     failed: 'Email hoặc mật khẩu không đúng.',
     signOut: 'Đăng xuất',
+    heroTitle: 'Lưu link kèm ghi chú. Tìm lại trong một giây.',
   },
 
   add: {
     urlPlaceholder: 'Dán link vào đây…',
+    paste: 'Dán',
     notePlaceholder: 'Ghi chú của bạn (tuỳ chọn)',
     save: 'Lưu',
-    saving: 'Đang lưu…',
     saved: 'Đã lưu!',
     failed: 'Lưu thất bại, thử lại.',
-    hint: 'Dán link hoặc viết ghi chú rồi bấm Lưu.',
+    hint: 'Ghi chú giúp bạn tìm lại sau này.',
   },
 
   inbox: {
     title: 'Hộp lưu',
+    count: (n: number) => `${n} mục đã lưu`,
+    emptyTitle: 'Hộp lưu đang trống',
     empty: 'Chưa có mục nào. Dán một link ở trên để bắt đầu.',
     emptyError: 'Không tải được danh sách.',
     statusPending: 'đang xử lý',
-    statusFailed: 'làm giàu lỗi',
     noNote: '(không có ghi chú)',
   },
 
   search: {
     title: 'Tìm kiếm',
     placeholder: 'Tìm theo ghi chú, tiêu đề…',
-    empty: 'Không tìm thấy kết quả.',
-    hint: 'Gõ để tìm. Không dấu vẫn ra kết quả có dấu.',
+    emptyTitle: 'Không thấy gì cả',
+    empty: 'Thử từ khoá khác, hoặc gõ đúng chữ trong ghi chú của bạn.',
+    hint: 'Tìm theo ghi chú hoặc tiêu đề. Gõ không dấu cũng được. Thử:',
+    examples: ['dinh gia', 'nau an', 'review sach'],
   },
 
   settings: {
@@ -86,6 +90,16 @@ export const vi = {
     shortcutGuide:
       'Tạo Shortcut nhận dữ liệu từ Share Sheet, hỏi ghi chú, rồi POST JSON {url, note, channel:"shortcut"} kèm header Authorization: Bearer <token> tới endpoint ingest.',
     endpointLabel: 'Endpoint',
+  },
+
+  sources: {
+    facebook: 'Facebook',
+    instagram: 'Instagram',
+    threads: 'Threads',
+    substack: 'Substack',
+    web: 'Web',
+    screenshot: 'Ảnh chụp',
+    other: 'Ghi chú',
   },
 
   placeholder: {

@@ -3,15 +3,21 @@ export interface PageMetadata {
   image?: string;
 }
 
+function fromCodePoint(code: number): string {
+  return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : '';
+}
+
 function decodeEntities(input: string): string {
   return input
-    .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#0?39;/g, "'")
     .replace(/&#x27;/gi, "'")
-    .replace(/&nbsp;/g, ' ');
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec: string) => fromCodePoint(parseInt(dec, 10)))
+    .replace(/&amp;/g, '&');
 }
 
 function attr(tag: string, name: string): string | undefined {

@@ -33,6 +33,14 @@ describe('stripTrackingParams / normalizeUrlSync', () => {
     );
   });
 
+  it('strips Facebook share-redirect params rdid and share_url', () => {
+    expect(
+      normalizeUrlSync(
+        'https://www.facebook.com/groups/vnjug/permalink/2554755371616434/?rdid=xBOKtn5AoDAtLzHj&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2Fp%2F19JUhwkxHM%2F',
+      ),
+    ).toBe('https://www.facebook.com/groups/vnjug/permalink/2554755371616434');
+  });
+
   it('two links differing only by tracking params normalize equal (dedupe)', () => {
     const a = normalizeUrlSync('https://sub.substack.com/p/x?utm_source=email');
     const b = normalizeUrlSync('https://sub.substack.com/p/x?utm_medium=web');

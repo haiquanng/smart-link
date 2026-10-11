@@ -1,13 +1,12 @@
 // POST /functions/v1/ingest — the single entry point for every capture channel
-// (architecture rule). Authenticates a personal api token, normalizes the URL,
-// and inserts the item as `pending`. Enrichment happens later and must never
-// block or fail this path.
+// (architecture rule). Authenticates, normalizes the URL without any network
+// call, and inserts the item as `pending`. Redirect resolution (Facebook
+// /share/ links) and enrichment run afterwards in `enrich`, so saving is fast.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, json } from '../_shared/cors.ts';
 import { validatePayload } from '../_shared/validate.ts';
-import { detectSource, normalizeUrl } from '../_shared/url.ts';
+import { detectSource, normalizeUrlSync } from '../_shared/url.ts';
 import { bearer, hashApiToken } from '../_shared/token.ts';
-import { resolveRedirect } from '../_shared/ssrf.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -23,6 +22,11 @@ declare const EdgeRuntime:
   | { waitUntil(promise: Promise<unknown>): void }
   | undefined;
 
+function background(task: PromiseLike<unknown>): void {
+  const p = Promise.resolve(task).catch(() => undefined);
+  if (typeof EdgeRuntime !== 'undefined') EdgeRuntime.waitUntil(p);
+}
+
 /** Kick off enrichment without blocking or failing the save (rule 1 & 7). */
 function triggerEnrich(itemId: string): void {
   const task = fetch(`${SUPABASE_URL}/functions/v1/enrich`, {
@@ -32,10 +36,9 @@ function triggerEnrich(itemId: string): void {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ item_id: itemId }),
-  }).catch(() => {
-    /* enrich is retryable; a failed trigger must not affect the save */
   });
-  if (typeof EdgeRuntime !== 'undefined') EdgeRuntime.waitUntil(task);
+  // enrich is retryable; a failed trigger must not affect the save.
+  background(task);
 }
 
 Deno.serve(async (req) => {
@@ -81,24 +84,26 @@ Deno.serve(async (req) => {
   if (!parsed.ok) return json({ error: parsed.error }, 400);
   const { url, note, channel } = parsed.data;
 
-  // 3. Normalize the URL (redirect-follow + strip tracking). A failed resolve
-  //    falls back to the original and must not block saving.
+  // 3. Normalize the URL offline (strip tracking, lowercase host). Following
+  //    redirects is slow, so `enrich` does it after the save.
   let urlNormalized: string | null = null;
   if (url) {
     try {
-      urlNormalized = await normalizeUrl(url, resolveRedirect);
+      urlNormalized = normalizeUrlSync(url);
     } catch {
       urlNormalized = null;
     }
   }
   const source = detectSource(url ?? null);
 
-  // Record token usage (best effort).
+  // Record token usage (best effort, off the response path).
   if (tokenRow) {
-    await admin
-      .from('api_tokens')
-      .update({ last_used_at: new Date().toISOString() })
-      .eq('id', tokenRow.id);
+    background(
+      admin
+        .from('api_tokens')
+        .update({ last_used_at: new Date().toISOString() })
+        .eq('id', tokenRow.id),
+    );
   }
 
   // 4. Dedupe on the normalized URL per user (business rule 5): append the new
