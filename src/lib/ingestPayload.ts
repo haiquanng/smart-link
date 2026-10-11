@@ -35,22 +35,39 @@ const httpUrl = trimmedOptional.refine(
   { message: 'url must be http(s)' },
 );
 
+/** `{user_id}/{uuid}.ext` in the private `screenshots` bucket. */
+export const IMAGE_PATH_PATTERN =
+  /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.(jpg|png|webp)$/;
+
+const imagePath = z.string().regex(IMAGE_PATH_PATTERN).optional();
+
+/** Ingest only trusts an image the caller's own folder holds. */
+export function imagePathOwnedBy(path: string, userId: string): boolean {
+  return path.startsWith(`${userId}/`);
+}
+
 /**
  * The ingest contract body. Shared so the Phase 0 spike server, the frontend
  * api layer, and the Phase 1 edge function all validate the same shape.
- * Business rule 2: at least one of url or note (image handled server-side,
- * out of scope for the spike).
+ * Business rule 2: at least one of url, note, or image_path.
  */
 export const ingestPayloadSchema = z
   .object({
     url: httpUrl,
     note: trimmedOptional,
     channel: channelSchema,
+    image_path: imagePath,
   })
-  .refine((value) => value.url !== undefined || value.note !== undefined, {
-    message: 'at least one of url or note is required',
-    path: ['url'],
-  });
+  .refine(
+    (value) =>
+      value.url !== undefined ||
+      value.note !== undefined ||
+      value.image_path !== undefined,
+    {
+      message: 'at least one of url, note or image_path is required',
+      path: ['url'],
+    },
+  );
 
 export type IngestPayload = z.infer<typeof ingestPayloadSchema>;
 

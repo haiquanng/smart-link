@@ -7,7 +7,7 @@ Dùng làm nguồn chuẩn khi viết test và code.
 2. Cần ít nhất một trong: URL, ghi chú, ảnh. Rỗng cả ba thì từ chối.
 3. Ghi chú của người dùng là tín hiệu tìm kiếm mạnh nhất, trọng số cao hơn tiêu đề và tóm tắt AI.
 4. URL được chuẩn hoá trước khi lưu: theo redirect (link `facebook.com/share/...`), bỏ tham số theo dõi (`mibextid`, `utm_*`, `fbclid`, `igshid`), hạ chữ thường tên miền.
-5. Cùng URL chuẩn hoá của cùng một người dùng thì không tạo bản ghi mới. Ghi chú mới được nối vào bản ghi cũ.
+5. Cùng URL chuẩn hoá của cùng một người dùng thì không tạo bản ghi mới. Ghi chú mới được nối vào bản ghi cũ. Ngoại lệ: lưu ảnh kèm URL đã có ảnh thì tạo mục riêng (giữ URL, không dùng để chống trùng); nếu mục cũ chưa có ảnh thì gắn ảnh vào mục cũ.
 6. Mỗi lần lưu ghi lại kênh (`shortcut`, `paste`, `upload`, `share_target`, `manual`).
 
 ## Làm giàu (enrich)

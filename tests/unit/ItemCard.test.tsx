@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { ItemCard } from '@/components/ItemCard';
 import type { Item } from '@/types/item';
 
@@ -35,5 +35,42 @@ describe('ItemCard', () => {
   it('marks pending status', () => {
     render(<ItemCard item={base} />);
     expect(screen.getByText(/đang xử lý/)).toBeInTheDocument();
+  });
+
+  it('prefers the signed screenshot URL over the preview image', () => {
+    const { container } = render(
+      <ItemCard
+        item={{ ...base, preview_image_url: 'https://cdn.example/p.jpg' }}
+        imageUrl="https://signed.example/s.jpg"
+      />,
+    );
+    expect(container.querySelector('img')?.getAttribute('src')).toBe(
+      'https://signed.example/s.jpg',
+    );
+  });
+
+  it('falls back to the preview image without a signed URL', () => {
+    const { container } = render(
+      <ItemCard item={{ ...base, preview_image_url: 'https://cdn.example/p.jpg' }} />,
+    );
+    expect(container.querySelector('img')?.getAttribute('src')).toBe(
+      'https://cdn.example/p.jpg',
+    );
+  });
+
+  it('confirms before deleting', () => {
+    const onDelete = vi.fn();
+    const confirm = vi.spyOn(window, 'confirm');
+    render(<ItemCard item={base} onDelete={onDelete} />);
+    const button = screen.getByRole('button', { name: 'Xoá' });
+
+    confirm.mockReturnValueOnce(false);
+    fireEvent.click(button);
+    expect(onDelete).not.toHaveBeenCalled();
+
+    confirm.mockReturnValueOnce(true);
+    fireEvent.click(button);
+    expect(onDelete).toHaveBeenCalledWith(base);
+    confirm.mockRestore();
   });
 });

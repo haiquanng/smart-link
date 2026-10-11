@@ -17,7 +17,8 @@ PWA (Inbox | Search | Collections | Resurface | Settings)
 | DB | Postgres + pgvector + unaccent | RLS on all tables |
 | Ingest | Edge Function `ingest` | Single entry for all channels |
 | Enrich | Edge Function `enrich` | Triggered after insert; idempotent; retryable |
-| Storage | Supabase Storage, private bucket `screenshots` | Signed URLs |
+| Storage | Supabase Storage, private bucket `screenshots` (5MB, jpeg/png/webp) | Path `{user_id}/{uuid}.jpg`, owner-only RLS, no update; signed URLs (1h, cached 50 min) |
+| Sweep | Edge Function `sweep-screenshots` via `pg_cron` + `pg_net` | Daily; deletes objects >24h old not referenced by `items.image_path`; auth by `CRON_SECRET` |
 | Resurface | `pg_cron` or scheduled function | Daily pick of old, unseen items |
 
 ## Data model (JSON)
@@ -27,14 +28,14 @@ PWA (Inbox | Search | Collections | Resurface | Settings)
     "id": "uuid pk",
     "user_id": "uuid fk auth.users, RLS",
     "url": "text, original as sent, nullable (screenshot-only items)",
-    "url_normalized": "text, nullable, unique with user_id",
+    "url_normalized": "text, nullable, unique with user_id; null on a second screenshot of an already-saved URL (url still kept)",
     "source": "enum: facebook | instagram | threads | substack | web | screenshot | other",
     "channel": "enum: shortcut | paste | upload | share_target | extension | manual",
     "note": "text, user's own words, primary search signal",
     "title": "text, nullable",
     "summary": "text, nullable, AI",
     "content_text": "text, nullable, scraped or OCR",
-    "image_path": "text, nullable, storage path of screenshot",
+    "image_path": "text, nullable, object name in private bucket screenshots: '{user_id}/{uuid}.jpg'; set only by ingest after ownership + existence check",
     "preview_image_url": "text, nullable",
     "status": "enum: pending | ready | enrich_failed",
     "seen_at": "timestamptz, nullable, set when user opens or dismisses in Resurface",
@@ -90,8 +91,10 @@ Request `POST /functions/v1/ingest`, header `Authorization: Bearer <api token>`:
   "channel": "shortcut"
 }
 ```
-Response `201`: `{ "id": "uuid", "status": "pending", "duplicate": false }`. Duplicate normalized URL returns `200` with `duplicate: true` and appends the new note to the existing item.
-At least one of `url`, `note`, or an uploaded image is required.
+Response `201`: `{ "id": "uuid", "status": "pending", "duplicate": false }`. Duplicate normalized URL returns `200` with `duplicate: true` and appends the new note to the existing item. With `image_path`: if the existing item has no image, the image is attached (200, duplicate); otherwise a separate item is created with `url` kept and `url_normalized = null` (201). Enrich applies the same rule when a resolved redirect hits an existing item.
+
+Screenshot upload: the client downscales to JPEG, uploads to `screenshots/{user_id}/{uuid}.jpg` with its session, then posts `{ "url"?, "note"?, "channel": "upload", "image_path": "{user_id}/{uuid}.jpg" }`. Ingest checks the pattern, that the prefix equals the authenticated user (session JWT or api token), and that the object exists; otherwise 400/403. Items with an image and no URL get `source = 'screenshot'`. One item per screenshot. Item delete removes the row first, then the object (a failed object delete is collected by the sweep).
+At least one of `url`, `note`, or `image_path` is required.
 
 ## Search
 `search_items(query text, filters jsonb, limit int)` returns items ranked by `0.6 * fts_rank + 0.4 * vector_similarity`, with `unaccent` applied to the query. If no embedding exists yet, fall back to full-text only. Filters: source, tag, collection, date range.

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import { vi } from '@/i18n/vi';
 import { formatRelativeTime } from '@/lib/formatDate';
 import { isEnriching } from '@/lib/itemStatus';
@@ -29,10 +30,13 @@ const SOCIAL = new Set<Source>(['facebook', 'instagram', 'threads']);
 
 interface ItemCardProps {
   item: Item;
+  /** Signed URL of the uploaded screenshot; wins over the scraped preview. */
+  imageUrl?: string;
+  onDelete?: (item: Item) => void;
 }
 
 /** Shows the user's note first, then title, then summary (business rule 14). */
-export function ItemCard({ item }: ItemCardProps) {
+export function ItemCard({ item, imageUrl, onDelete }: ItemCardProps) {
   const [imageBroken, setImageBroken] = useState(false);
   // The source label already names social networks; the domain only adds
   // information for ordinary websites.
@@ -40,7 +44,8 @@ export function ItemCard({ item }: ItemCardProps) {
   const primary = item.note ?? item.title ?? item.summary ?? vi.inbox.noNote;
   const secondary = item.note ? item.title : null;
   const enriching = isEnriching(item, Date.now());
-  const showImage = item.preview_image_url && !imageBroken;
+  const imageSrc = imageUrl ?? item.preview_image_url;
+  const showImage = imageSrc && !imageBroken;
 
   return (
     <article className="flex animate-fade gap-3 rounded-xl border border-line bg-white p-4 transition-colors hover:border-stone-300">
@@ -93,7 +98,7 @@ export function ItemCard({ item }: ItemCardProps) {
 
       {showImage && (
         <img
-          src={item.preview_image_url ?? undefined}
+          src={imageSrc}
           alt=""
           loading="lazy"
           // Social CDNs often reject hotlinks that carry our origin as referrer.
@@ -101,6 +106,19 @@ export function ItemCard({ item }: ItemCardProps) {
           onError={() => setImageBroken(true)}
           className="h-[72px] w-[72px] shrink-0 rounded-lg border border-line bg-stone-100 object-cover"
         />
+      )}
+
+      {onDelete && (
+        <button
+          type="button"
+          aria-label={vi.inbox.delete}
+          onClick={() => {
+            if (window.confirm(vi.inbox.deleteConfirm)) onDelete(item);
+          }}
+          className="-mr-2 -mt-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-stone-400 hover:bg-stone-100 hover:text-red-600"
+        >
+          <Trash2 size={18} aria-hidden="true" />
+        </button>
       )}
     </article>
   );

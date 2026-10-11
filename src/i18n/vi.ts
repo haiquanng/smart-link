@@ -48,6 +48,14 @@ export const vi = {
     saved: 'Đã lưu!',
     failed: 'Lưu thất bại, thử lại.',
     hint: 'Ghi chú giúp bạn tìm lại sau này.',
+    addImages: 'Thêm ảnh',
+    removeImage: 'Bỏ ảnh',
+    imageUploading: 'Đang tải lên…',
+    imageDone: 'Đã lưu',
+    imageFailed: 'Lỗi, thử lại',
+    imageReady: 'Sẵn sàng',
+    unsupportedImage: 'Chỉ nhận ảnh JPG, PNG, WebP hoặc HEIC.',
+    tooManyImages: (max: number) => `Tối đa ${max} ảnh mỗi lần.`,
   },
 
   inbox: {
@@ -58,6 +66,8 @@ export const vi = {
     emptyError: 'Không tải được danh sách.',
     statusPending: 'đang xử lý',
     noNote: '(không có ghi chú)',
+    delete: 'Xoá',
+    deleteConfirm: 'Xoá mục này? Không thể hoàn tác.',
   },
 
   search: {

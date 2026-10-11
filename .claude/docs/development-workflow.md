@@ -29,6 +29,12 @@ Phase 0 and 1 are the biggest risk. Do not build UI polish before the Shortcut p
 ## Environment
 `.env.example` names: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (frontend); `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY` (edge function secrets only).
 
+## Screenshot sweep setup
+The daily `sweep-screenshots` cron (migration `20261011000004`) needs two Vault secrets created by hand, never in git:
+- `project_url`: the project URL (local: `http://host.docker.internal:54321`).
+- `cron_secret`: a random 32+ byte value.
+Set the same value as an edge function secret: `supabase secrets set CRON_SECRET=<same value>`. Without both, the sweep call fails and orphaned screenshots stay in the bucket.
+
 ## Open questions
 - Embedding model and dimension for Vietnamese text (placeholder 1024). Decided: Google embeddings (cheapest tier); confirm model/dimension when implemented (may change schema from 1024).
 

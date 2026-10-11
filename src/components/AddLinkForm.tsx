@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
+import { ScreenshotPicker } from '@/components/ScreenshotPicker';
 import { useSaveLink } from '@/hooks/useSaveLink';
+import { useScreenshotBatch } from '@/hooks/useScreenshotBatch';
 import { vi } from '@/i18n/vi';
 
 const FIELD =
@@ -12,8 +14,10 @@ export function AddLinkForm() {
   const noteRef = useRef<HTMLInputElement>(null);
   const urlRef = useRef<HTMLInputElement>(null);
   const save = useSaveLink();
+  const batch = useScreenshotBatch();
 
-  const canSave = url.trim() !== '' || note.trim() !== '';
+  const canSave =
+    url.trim() !== '' || note.trim() !== '' || batch.hasWaiting;
 
   // iOS asks for paste permission; if refused, fall back to the keyboard.
   async function onPaste() {
@@ -37,6 +41,12 @@ export function AddLinkForm() {
     const input = { url, note };
     setUrl('');
     setNote('');
+    // Screenshots carry their own url/note, so the link itself is not saved
+    // separately.
+    if (batch.hasWaiting) {
+      void batch.submit(url, note);
+      return;
+    }
     save.mutate(input, {
       onError: () => {
         setUrl(input.url);
@@ -79,6 +89,14 @@ export function AddLinkForm() {
         />
       </div>
 
+      <ScreenshotPicker
+        shots={batch.shots}
+        notice={batch.notice}
+        onAdd={batch.add}
+        onRemove={batch.remove}
+        onRetry={batch.retry}
+      />
+
       <div className="mt-2.5 flex items-center justify-between gap-3">
         <span
           key={save.submittedAt}
@@ -94,7 +112,7 @@ export function AddLinkForm() {
         </span>
         <button
           type="submit"
-          disabled={!canSave}
+          disabled={!canSave || batch.busy}
           className="min-h-[44px] shrink-0 rounded-lg bg-ink px-6 text-sm font-semibold text-white hover:bg-stone-800 disabled:bg-stone-300"
         >
           {vi.add.save}

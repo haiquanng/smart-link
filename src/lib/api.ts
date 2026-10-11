@@ -7,6 +7,23 @@ import type { ApiToken, Item } from '@/types/item';
 const ITEM_COLUMNS =
   'id, url, url_normalized, source, channel, note, title, summary, content_text, image_path, preview_image_url, status, seen_at, created_at';
 
+const SCREENSHOT_BUCKET = 'screenshots';
+export const SIGNED_URL_TTL_SECONDS = 3600;
+
+async function postIngest(body: Record<string, unknown>): Promise<void> {
+  const session = await api.getSession();
+  if (!session) throw new Error('not signed in');
+  const res = await fetch(`${env.VITE_SUPABASE_URL}/functions/v1/ingest`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`save failed (${res.status})`);
+}
+
 /** The only module that talks to Supabase. Components/hooks call these. */
 export const api = {
   // --- Auth ---------------------------------------------------------------
@@ -59,21 +76,67 @@ export const api = {
   /** In-app capture (channel #2). Goes through the single ingest endpoint
    *  using the session JWT, so normalize/dedupe/enrich stay server-side. */
   async saveLink(url: string, note: string): Promise<void> {
+    await postIngest({
+      url: url.trim() || undefined,
+      note: note.trim() || undefined,
+      channel: 'manual',
+    });
+  },
+
+  /** Screenshot capture: upload to the private bucket with the user session,
+   *  then ingest verifies ownership and the object before saving the row. */
+  async saveScreenshot(image: Blob, url: string, note: string): Promise<void> {
     const session = await api.getSession();
     if (!session) throw new Error('not signed in');
-    const res = await fetch(`${env.VITE_SUPABASE_URL}/functions/v1/ingest`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    const path = `${session.user.id}/${crypto.randomUUID()}.jpg`;
+    const bucket = supabase.storage.from(SCREENSHOT_BUCKET);
+
+    const { error } = await bucket.upload(path, image, {
+      contentType: 'image/jpeg',
+      upsert: false,
+    });
+    if (error) throw error;
+
+    try {
+      await postIngest({
         url: url.trim() || undefined,
         note: note.trim() || undefined,
-        channel: 'manual',
-      }),
-    });
-    if (!res.ok) throw new Error(`save failed (${res.status})`);
+        channel: 'upload',
+        image_path: path,
+      });
+    } catch (err) {
+      // Best effort; the daily sweep collects whatever this misses.
+      await bucket.remove([path]).catch(() => undefined);
+      throw err;
+    }
+  },
+
+  /** Row first so the item disappears even if storage is down; a leftover
+   *  object is collected by the sweep. */
+  async deleteItem(item: Pick<Item, 'id' | 'image_path'>): Promise<void> {
+    const { error } = await supabase.from('items').delete().eq('id', item.id);
+    if (error) throw error;
+    if (item.image_path) {
+      try {
+        await supabase.storage.from(SCREENSHOT_BUCKET).remove([item.image_path]);
+      } catch {
+        /* swept later */
+      }
+    }
+  },
+
+  /** One batched request for every visible screenshot. */
+  async getSignedImageUrls(paths: string[]): Promise<Record<string, string>> {
+    if (paths.length === 0) return {};
+    const { data, error } = await supabase.storage
+      .from(SCREENSHOT_BUCKET)
+      .createSignedUrls(paths, SIGNED_URL_TTL_SECONDS);
+    if (error) throw error;
+    const urls: Record<string, string> = {};
+    for (const entry of data ?? []) {
+      if (entry.path && entry.signedUrl) urls[entry.path] = entry.signedUrl;
+    }
+    return urls;
   },
 
   async searchItems(query: string, limit = 50): Promise<Item[]> {

@@ -10,6 +10,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, json } from '../_shared/cors.ts';
 import { fetchPageHtml } from '../_shared/fetchPage.ts';
 import { parseMetadata } from '../_shared/metadata.ts';
+import { dedupeAction } from '../_shared/dedupe.ts';
 import { timingSafeEqual } from '../_shared/token.ts';
 import { resolveRedirect } from '../_shared/ssrf.ts';
 import { needsRedirectResolution, normalizeUrl } from '../_shared/url.ts';
@@ -33,31 +34,41 @@ interface ItemRow {
   id: string;
   user_id: string;
   note: string | null;
+  image_path: string | null;
 }
 
 /**
  * Business rule 5: one row per normalized URL per user. If the resolved URL
- * already exists, fold this item's note into it and drop this row.
+ * already exists, fold this item into it per dedupeAction. Returns the id it
+ * merged into, or null when the item stays (including the `separate` case,
+ * where the caller must also leave url_normalized unset).
  */
 async function mergeIfDuplicate(
   item: ItemRow,
   resolved: string,
-): Promise<string | null> {
+): Promise<{ mergedInto: string | null; separate: boolean }> {
   const { data: existing } = await admin
     .from('items')
-    .select('id, note')
+    .select('id, note, image_path')
     .eq('user_id', item.user_id)
     .eq('url_normalized', resolved)
     .neq('id', item.id)
     .maybeSingle();
-  if (!existing) return null;
+  if (!existing) return { mergedInto: null, separate: false };
 
-  if (item.note) {
-    const merged = existing.note ? `${existing.note}\n${item.note}` : item.note;
-    await admin.from('items').update({ note: merged }).eq('id', existing.id);
-  }
+  const action = dedupeAction(!!item.image_path, !!existing.image_path);
+  if (action === 'separate') return { mergedInto: null, separate: true };
+
+  const merged =
+    item.note && existing.note
+      ? `${existing.note}\n${item.note}`
+      : (item.note ?? existing.note);
+  const update: Record<string, unknown> = { note: merged };
+  // The storage object moves with the image_path; it is not deleted here.
+  if (action === 'attach_image') update.image_path = item.image_path;
+  await admin.from('items').update(update).eq('id', existing.id);
   await admin.from('items').delete().eq('id', item.id);
-  return existing.id as string;
+  return { mergedInto: existing.id as string, separate: false };
 }
 
 Deno.serve(async (req) => {
@@ -83,7 +94,7 @@ Deno.serve(async (req) => {
 
   const { data: item, error } = await admin
     .from('items')
-    .select('id, user_id, url, url_normalized, note, title')
+    .select('id, user_id, url, url_normalized, note, title, image_path')
     .eq('id', itemId)
     .maybeSingle();
   if (error) return json({ error: 'lookup failed' }, 500);
@@ -97,10 +108,12 @@ Deno.serve(async (req) => {
     // links here so the real post URL is used for dedupe and metadata.
     if (item.url && needsRedirectResolution(item.url)) {
       const resolved = await normalizeUrl(item.url, resolveRedirect);
-      if (resolved !== item.url_normalized) {
-        const mergedInto = await mergeIfDuplicate(item, resolved);
+      // A null url_normalized means ingest kept this screenshot out of the
+      // dedupe index; never put it back.
+      if (item.url_normalized !== null && resolved !== item.url_normalized) {
+        const { mergedInto, separate } = await mergeIfDuplicate(item, resolved);
         if (mergedInto) return json({ id: mergedInto, merged: true }, 200);
-        patch.url_normalized = resolved;
+        if (!separate) patch.url_normalized = resolved;
       }
       fetchUrl = resolved;
     }

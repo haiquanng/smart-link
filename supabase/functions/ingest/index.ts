@@ -1,11 +1,12 @@
 // POST /functions/v1/ingest — the single entry point for every capture channel
 // (architecture rule). Authenticates, normalizes the URL without any network
-// call, and inserts the item as `pending`. Redirect resolution (Facebook
-// /share/ links) and enrichment run afterwards in `enrich`, so saving is fast.
+// call, and inserts the item as `pending` (see saveItem.ts). Redirect
+// resolution (Facebook /share/ links) and enrichment run afterwards in
+// `enrich`, so saving is fast.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, json } from '../_shared/cors.ts';
-import { validatePayload } from '../_shared/validate.ts';
-import { detectSource, normalizeUrlSync } from '../_shared/url.ts';
+import { imagePathOwnedBy, validatePayload } from '../_shared/validate.ts';
+import { saveItem } from './saveItem.ts';
 import { bearer, hashApiToken } from '../_shared/token.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -82,19 +83,19 @@ Deno.serve(async (req) => {
   }
   const parsed = validatePayload(body);
   if (!parsed.ok) return json({ error: parsed.error }, 400);
-  const { url, note, channel } = parsed.data;
+  const { url, note, channel, image_path: imagePath } = parsed.data;
 
-  // 3. Normalize the URL offline (strip tracking, lowercase host). Following
-  //    redirects is slow, so `enrich` does it after the save.
-  let urlNormalized: string | null = null;
-  if (url) {
-    try {
-      urlNormalized = normalizeUrlSync(url);
-    } catch {
-      urlNormalized = null;
+  // 3. A screenshot must live in the caller's own folder and actually exist;
+  //    otherwise a user could attach someone else's object or a dangling path.
+  if (imagePath) {
+    if (!imagePathOwnedBy(imagePath, userId)) {
+      return json({ error: 'forbidden image' }, 403);
     }
+    const { data: exists } = await admin.storage
+      .from('screenshots')
+      .exists(imagePath);
+    if (!exists) return json({ error: 'image not found' }, 400);
   }
-  const source = detectSource(url ?? null);
 
   // Record token usage (best effort, off the response path).
   if (tokenRow) {
@@ -106,56 +107,10 @@ Deno.serve(async (req) => {
     );
   }
 
-  // 4. Dedupe on the normalized URL per user (business rule 5): append the new
-  //    note to the existing item rather than creating a second row.
-  if (urlNormalized) {
-    const { data: existing } = await admin
-      .from('items')
-      .select('id, note')
-      .eq('user_id', userId)
-      .eq('url_normalized', urlNormalized)
-      .maybeSingle();
-
-    if (existing) {
-      if (note) {
-        const mergedNote = existing.note ? `${existing.note}\n${note}` : note;
-        await admin.from('items').update({ note: mergedNote }).eq('id', existing.id);
-      }
-      return json({ id: existing.id, status: 'pending', duplicate: true }, 200);
-    }
-  }
-
-  // 5. Insert as pending.
-  const { data: inserted, error: insertError } = await admin
-    .from('items')
-    .insert({
-      user_id: userId,
-      url: url ?? null,
-      url_normalized: urlNormalized,
-      source,
-      channel,
-      note: note ?? null,
-      status: 'pending',
-    })
-    .select('id')
-    .single();
-
-  // Handle the dedupe race (unique violation) as a duplicate, not an error.
-  if (insertError) {
-    if (insertError.code === '23505' && urlNormalized) {
-      const { data: existing } = await admin
-        .from('items')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('url_normalized', urlNormalized)
-        .maybeSingle();
-      if (existing) {
-        return json({ id: existing.id, status: 'pending', duplicate: true }, 200);
-      }
-    }
-    return json({ error: 'insert failed' }, 500);
-  }
-
-  triggerEnrich(inserted.id);
-  return json({ id: inserted.id, status: 'pending', duplicate: false }, 201);
+  const result = await saveItem(
+    admin,
+    { userId, url, note, channel, imagePath },
+    triggerEnrich,
+  );
+  return json(result.body, result.status);
 });
