@@ -65,6 +65,9 @@ Set the same value as an edge function secret: `supabase secrets set CRON_SECRET
 ## Local functions
 `npx supabase functions serve --env-file <file>` runs every function against the local stack, so `tests/integration` (ingest, rate limit, collections, public share) and `tests/e2e/live` can run fully offline from production.
 
+## Preview e2e (service worker)
+`tests/e2e/live/shareTargetPost.spec.ts` needs the built worker: `VITE_SUPABASE_URL=… VITE_SUPABASE_ANON_KEY=… npx vite build --outDir /tmp/sl-preview && npx vite preview --outDir /tmp/sl-preview --port 5288`, then run Playwright with `E2E_PREVIEW=1 E2E_PORT=5288` plus the live env below. On a real Android phone: install the PWA from Chrome, then share from any app and pick Smart Link.
+
 ## Live e2e
 Specs in `tests/e2e/live/` run against a real Supabase with no network mocks and skip unless configured. Locally: `npx supabase start`, create a confirmed user, then
 `VITE_SUPABASE_URL=http://localhost:54321 VITE_SUPABASE_ANON_KEY=<local anon> E2E_SERVICE_ROLE_KEY=<local service role> E2E_USER=<email:password> E2E_PORT=<free port> npm run test:e2e`.

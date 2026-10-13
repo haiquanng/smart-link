@@ -10,6 +10,11 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        importScripts: ['share-target-sw.js'],
+        // The POST is answered by the imported handler, never by the shell.
+        navigateFallbackDenylist: [/^\/share-target/],
+      },
       manifest: {
         name: 'Smart Link',
         short_name: 'Smart Link',
@@ -18,6 +23,18 @@ export default defineConfig({
         background_color: '#fafaf9',
         display: 'standalone',
         start_url: '/',
+        // Android only; iOS PWAs cannot be share targets (iOS uses the Shortcut).
+        share_target: {
+          action: '/share-target',
+          method: 'POST',
+          enctype: 'multipart/form-data',
+          params: {
+            title: 'title',
+            text: 'text',
+            url: 'url',
+            files: [{ name: 'images', accept: ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/*'] }],
+          },
+        },
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },

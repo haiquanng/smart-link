@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 import { env } from '@/lib/env';
 import { generateApiToken, hashApiToken } from '@/lib/apiToken';
-import { sourceSchema } from '@/lib/ingestPayload';
+import { sourceSchema, type Channel } from '@/lib/ingestPayload';
 import { EMPTY_FILTERS, toRequestFilters, type SearchFilters } from '@/lib/searchParams';
 import { ITEM_COLUMNS } from '@/lib/itemColumns';
 import { collectionsApi } from '@/lib/collectionsApi';
@@ -101,17 +101,22 @@ export const api = {
 
   /** In-app capture (channel #2). Goes through the single ingest endpoint
    *  using the session JWT, so normalize/dedupe/enrich stay server-side. */
-  async saveLink(url: string, note: string): Promise<void> {
+  async saveLink(url: string, note: string, channel: Channel = 'manual'): Promise<void> {
     await postIngest({
       url: url.trim() || undefined,
       note: note.trim() || undefined,
-      channel: 'manual',
+      channel,
     });
   },
 
   /** Screenshot capture: upload to the private bucket with the user session,
    *  then ingest verifies ownership and the object before saving the row. */
-  async saveScreenshot(image: Blob, url: string, note: string): Promise<void> {
+  async saveScreenshot(
+    image: Blob,
+    url: string,
+    note: string,
+    channel: Channel = 'upload',
+  ): Promise<void> {
     const session = await api.getSession();
     if (!session) throw new Error('not signed in');
     const path = `${session.user.id}/${crypto.randomUUID()}.jpg`;
@@ -127,7 +132,7 @@ export const api = {
       await postIngest({
         url: url.trim() || undefined,
         note: note.trim() || undefined,
-        channel: 'upload',
+        channel,
         image_path: path,
       });
     } catch (err) {
