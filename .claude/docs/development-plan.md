@@ -27,6 +27,11 @@ Status as of 2026-10-13. Issues live on GitHub (`haiquanng/smart-link`); this is
 | 1 | Release PR `dev` -> `main` | After the stack is merged; then the one-time migration repair and deploy secrets |
 | 2 | Design review of screens with the owner | #15 shipped the theme system and contrast fixes; the visual direction of each screen still needs the owner's eye (earlier pass was judged "too AI") |
 
+## Scope decisions (2026-10-13)
+- Web Push reminders: **paused**. Code, table and function stay; cron unscheduled, Settings hides the block. Resume only if the owner asks.
+- Deploy: GitHub Actions `deploy.yml` (no `supabase link`) stays; CI/CD works.
+- Focus: Chrome extension (#12) is the next capture work.
+
 ## Later (no issue yet)
 - Real-device pass on iPhone (installed PWA) and Android (share sheet).
 - Survey-driven: in-app detail view (currently out of scope), shared collections with edit rights.
