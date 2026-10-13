@@ -38,5 +38,5 @@ Status as of 2026-10-13. Issues live on GitHub (`haiquanng/smart-link`); this is
 
 ## Deploy checklist per release (`dev` -> `main`)
 1. Owner merges the release PR.
-2. CI applies migrations and deploys functions (once CI/CD is in), or the owner runs `npx supabase db push` and `npx supabase functions deploy <changed>`.
+2. The owner runs `npx supabase db push` and `npx supabase functions deploy --use-api` (see development-workflow.md -> Deploy).
 3. Vercel builds `main`. Smoke test on the phone: save, search, open a shared link.
