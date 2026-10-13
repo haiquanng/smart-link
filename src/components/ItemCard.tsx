@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Trash2 } from 'lucide-react';
+import { CollectionPicker } from '@/components/CollectionPicker';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { vi } from '@/i18n/vi';
 import { formatRelativeTime } from '@/lib/formatDate';
@@ -50,10 +51,12 @@ interface ItemCardProps {
   /** Signed URL of the uploaded screenshot; wins over the scraped preview. */
   imageUrl?: string;
   onDelete?: (item: Item) => void;
+  /** Shows the add-to-collection button (owner views only). */
+  canOrganize?: boolean;
 }
 
 /** Shows the user's note first, then title, then summary (business rule 14). */
-export function ItemCard({ item, imageUrl, onDelete }: ItemCardProps) {
+export function ItemCard({ item, imageUrl, onDelete, canOrganize = false }: ItemCardProps) {
   const [imageBroken, setImageBroken] = useState(false);
   // The source label already names social networks; the domain only adds
   // information for ordinary websites.
@@ -126,22 +129,27 @@ export function ItemCard({ item, imageUrl, onDelete }: ItemCardProps) {
         )}
       </MainArea>
 
-      {onDelete && (
-        <ConfirmDialog
-          title={vi.inbox.deleteTitle}
-          description={vi.inbox.deleteDescription}
-          confirmLabel={vi.inbox.delete}
-          tone="danger"
-          onConfirm={() => onDelete(item)}
-        >
-          <button
-            type="button"
-            aria-label={vi.inbox.delete}
-            className="-mr-2 -mt-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-stone-400 hover:bg-stone-100 hover:text-red-600"
-          >
-            <Trash2 size={18} aria-hidden="true" />
-          </button>
-        </ConfirmDialog>
+      {(onDelete || canOrganize) && (
+        <div className="-mr-2 -mt-2 flex shrink-0 flex-col">
+          {canOrganize && <CollectionPicker itemId={item.id} />}
+          {onDelete && (
+            <ConfirmDialog
+              title={vi.inbox.deleteTitle}
+              description={vi.inbox.deleteDescription}
+              confirmLabel={vi.inbox.delete}
+              tone="danger"
+              onConfirm={() => onDelete(item)}
+            >
+              <button
+                type="button"
+                aria-label={vi.inbox.delete}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-stone-400 hover:bg-stone-100 hover:text-red-600"
+              >
+                <Trash2 size={18} aria-hidden="true" />
+              </button>
+            </ConfirmDialog>
+          )}
+        </div>
       )}
     </article>
   );

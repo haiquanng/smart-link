@@ -7,6 +7,8 @@ import { SignInScreen } from '@/screens/SignInScreen';
 import { InboxScreen } from '@/screens/InboxScreen';
 import { SearchScreen } from '@/screens/SearchScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen';
+import { CollectionsScreen } from '@/screens/CollectionsScreen';
+import { CollectionScreen } from '@/screens/CollectionScreen';
 import { useSession } from '@/hooks/useSession';
 import { vi } from '@/i18n/vi';
 
@@ -34,15 +36,8 @@ export default function App() {
         <Routes>
           <Route path="/inbox" element={<InboxScreen />} />
           <Route path="/search" element={<SearchScreen />} />
-          <Route
-            path="/collections"
-            element={
-              <PlaceholderScreen
-                title={vi.tabs.collections}
-                message={vi.placeholder.collections}
-              />
-            }
-          />
+          <Route path="/collections" element={<CollectionsScreen />} />
+          <Route path="/collections/:id" element={<CollectionScreen />} />
           <Route
             path="/resurface"
             element={

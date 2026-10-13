@@ -59,6 +59,11 @@ Set the same value as an edge function secret: `supabase secrets set CRON_SECRET
 - Integration test `tests/integration/rateLimit.integration.test.ts` runs against local Supabase (`npx supabase start`) with two test user ids.
 - Deno functions can be type-checked without a local install: `docker run --rm -v "$PWD/supabase/functions:/fn" -w /fn denoland/deno:2.1.4 deno check */index.ts`.
 
+## Live e2e
+Specs in `tests/e2e/live/` run against a real Supabase with no network mocks and skip unless configured. Locally: `npx supabase start`, create a confirmed user, then
+`VITE_SUPABASE_URL=http://localhost:54321 VITE_SUPABASE_ANON_KEY=<local anon> E2E_SERVICE_ROLE_KEY=<local service role> E2E_USER=<email:password> E2E_PORT=<free port> npm run test:e2e`.
+The mocked specs keep working in the same run because they intercept `localhost:54321` themselves.
+
 ## Open questions
 ## Resolved
 - Enrich runs via a fire-and-forget call from ingest (non-blocking), re-runnable on demand, with a pg_cron retry fallback (`retry-enrich`).

@@ -93,6 +93,32 @@ export const vi = {
     },
   },
 
+  collections: {
+    title: 'Bộ sưu tập',
+    count: (n: number) => `${n} bộ sưu tập`,
+    itemCount: (n: number) => `${n} mục`,
+    namePlaceholder: 'Tên bộ sưu tập mới',
+    nameLabel: 'Tên bộ sưu tập',
+    create: 'Tạo',
+    emptyTitle: 'Chưa có bộ sưu tập',
+    empty: 'Gom các link cùng chủ đề vào một chỗ, ví dụ "Quán ăn" hay "Ôn thi".',
+    loadError: 'Không tải được bộ sưu tập.',
+    createError: 'Không tạo được, thử lại.',
+    back: 'Tất cả bộ sưu tập',
+    rename: 'Đổi tên',
+    save: 'Lưu',
+    delete: 'Xoá bộ sưu tập',
+    deleteTitle: 'Xoá bộ sưu tập này?',
+    deleteDescription: 'Các mục bên trong vẫn còn trong Hộp lưu.',
+    itemsEmptyTitle: 'Bộ sưu tập trống',
+    itemsEmpty: 'Bấm biểu tượng thư mục trên một mục để thêm vào đây.',
+    notFound: 'Không tìm thấy bộ sưu tập.',
+    addToCollection: 'Thêm vào bộ sưu tập',
+    pickerTitle: 'Thêm vào bộ sưu tập',
+    pickerEmpty: 'Chưa có bộ sưu tập nào. Tạo một cái bên dưới.',
+    filterLabel: 'Bộ sưu tập',
+  },
+
   settings: {
     title: 'Cài đặt',
     account: 'Tài khoản',
@@ -129,7 +155,6 @@ export const vi = {
   },
 
   placeholder: {
-    collections: 'Bộ sưu tập sẽ có ở giai đoạn sau.',
     resurface: 'Tính năng nhắc lại sẽ có ở giai đoạn sau.',
   },
 } as const;

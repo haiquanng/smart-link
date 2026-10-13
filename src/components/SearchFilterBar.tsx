@@ -3,6 +3,7 @@ import { vi } from '@/i18n/vi';
 import { sourceSchema, type Source } from '@/lib/ingestPayload';
 import { TIME_RANGES, type SearchFilters } from '@/lib/searchParams';
 import type { TagCount } from '@/lib/api';
+import type { Collection } from '@/lib/collectionsApi';
 
 // "other" is a catch-all with no useful meaning as a filter.
 const SOURCE_CHOICES = sourceSchema.options.filter(
@@ -16,11 +17,12 @@ function toggle<T>(list: T[], value: T): T[] {
 interface SearchFilterBarProps {
   filters: SearchFilters;
   tags: TagCount[];
+  collections: Collection[];
   onChange: (filters: SearchFilters) => void;
 }
 
-/** One horizontally scrollable row: sources, time (cycles), then top tags. */
-export function SearchFilterBar({ filters, tags, onChange }: SearchFilterBarProps) {
+/** One horizontally scrollable row: sources, time (cycles), collections, then top tags. */
+export function SearchFilterBar({ filters, tags, collections, onChange }: SearchFilterBarProps) {
   const nextRange = TIME_RANGES[(TIME_RANGES.indexOf(filters.range) + 1) % TIME_RANGES.length];
 
   return (
@@ -44,6 +46,17 @@ export function SearchFilterBar({ filters, tags, onChange }: SearchFilterBarProp
       >
         {vi.search.timeLabel}: {vi.search.ranges[filters.range]}
       </FilterChip>
+      {collections.map((c) => (
+        <FilterChip
+          key={c.id}
+          active={filters.collectionId === c.id}
+          onClick={() =>
+            onChange({ ...filters, collectionId: filters.collectionId === c.id ? null : c.id })
+          }
+        >
+          {c.name}
+        </FilterChip>
+      ))}
       {tags.map((tag) => (
         <FilterChip
           key={tag.name}

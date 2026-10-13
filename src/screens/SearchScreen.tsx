@@ -9,6 +9,7 @@ import { SearchFilterBar } from '@/components/SearchFilterBar';
 import { useDebounced } from '@/hooks/useDebounced';
 import { useSearchItems } from '@/hooks/useSearchItems';
 import { useTopTags } from '@/hooks/useTopTags';
+import { useCollections } from '@/hooks/useCollections';
 import {
   parseSearchParams,
   serializeSearchParams,
@@ -26,6 +27,7 @@ export function SearchScreen() {
     setParams(serializeSearchParams(query, f), { replace: true });
   const debounced = useDebounced(query, 300);
   const tags = useTopTags();
+  const collections = useCollections();
   const { data, isLoading, isError, isPlaceholderData, refetch } =
     useSearchItems(debounced, filters);
   const hasQuery = debounced.trim().length > 0;
@@ -45,7 +47,12 @@ export function SearchScreen() {
             className="min-h-[46px] w-full bg-transparent text-[15px] text-ink outline-none placeholder:text-stone-400"
           />
         </label>
-        <SearchFilterBar filters={filters} tags={tags} onChange={setFilters} />
+        <SearchFilterBar
+          filters={filters}
+          tags={tags}
+          collections={collections.data ?? []}
+          onChange={setFilters}
+        />
       </ScreenHeader>
 
       <div className="px-4 pt-1 lg:px-0">

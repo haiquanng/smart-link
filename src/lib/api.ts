@@ -5,10 +5,10 @@ import { env } from '@/lib/env';
 import { generateApiToken, hashApiToken } from '@/lib/apiToken';
 import { sourceSchema } from '@/lib/ingestPayload';
 import { EMPTY_FILTERS, toRequestFilters, type SearchFilters } from '@/lib/searchParams';
+import { ITEM_COLUMNS } from '@/lib/itemColumns';
+import { collectionsApi } from '@/lib/collectionsApi';
 import type { ApiToken, Item } from '@/types/item';
 
-const ITEM_COLUMNS =
-  'id, url, url_normalized, source, channel, note, title, title_origin, summary, content_text, image_path, preview_image_url, status, enrich_attempts, seen_at, created_at';
 
 // Loose on purpose: the function owns the row shape, we only need a list.
 const searchResponseSchema = z.object({
@@ -180,6 +180,8 @@ export const api = {
     if (error) throw error;
     return tagCountsSchema.parse(data ?? []);
   },
+
+  collections: collectionsApi,
 
   // --- API tokens ---------------------------------------------------------
   async listTokens(): Promise<ApiToken[]> {

@@ -7,6 +7,7 @@ import {
 } from '@/lib/searchParams';
 
 const parse = (qs: string) => parseSearchParams(new URLSearchParams(qs));
+const COL = '6cbcca19-eb9c-426d-9579-03a0f0930f23';
 
 describe('searchParams', () => {
   it('parses query, sources, tags and range', () => {
@@ -16,6 +17,7 @@ describe('searchParams', () => {
         sources: ['facebook', 'instagram'],
         tags: ['saas', 'gia'],
         range: '30d',
+        collectionId: null,
       },
     });
   });
@@ -26,7 +28,7 @@ describe('searchParams', () => {
 
   it('ignores invalid values and duplicates', () => {
     const { filters } = parse('src=facebook,bogus,facebook&t=99d&tag=&tag=a&tag=a');
-    expect(filters).toEqual({ sources: ['facebook'], tags: ['a'], range: 'all' });
+    expect(filters).toEqual({ sources: ['facebook'], tags: ['a'], range: 'all', collectionId: null });
   });
 
   it('caps tags at 10', () => {
@@ -37,7 +39,7 @@ describe('searchParams', () => {
   it('round-trips through serialize', () => {
     const state = {
       query: 'nấu ăn',
-      filters: { sources: ['threads' as const, 'web' as const], tags: ['a b', 'c,d'], range: '7d' as const },
+      filters: { sources: ['threads' as const, 'web' as const], tags: ['a b', 'c,d'], range: '7d' as const, collectionId: COL },
     };
     expect(parseSearchParams(serializeSearchParams(state.query, state.filters))).toEqual(state);
   });
@@ -54,7 +56,19 @@ describe('searchParams', () => {
     });
     expect(toRequestFilters(EMPTY_FILTERS, now)).toEqual({});
     expect(
-      toRequestFilters({ sources: ['web'], tags: ['a'], range: '1y' }, now),
+      toRequestFilters({ sources: ['web'], tags: ['a'], range: '1y', collectionId: null }, now),
     ).toEqual({ sources: ['web'], tags: ['a'], from: '2025-10-11T00:00:00.000Z' });
+  });
+
+  it('reads a collection filter only when it is a uuid', () => {
+    expect(parse(`col=${COL}`).filters.collectionId).toBe(COL);
+    expect(parse('col=not-a-uuid').filters.collectionId).toBeNull();
+  });
+
+  it('sends the collection filter as collection_id', () => {
+    const now = new Date('2026-10-11T00:00:00.000Z');
+    expect(toRequestFilters({ ...EMPTY_FILTERS, collectionId: COL }, now)).toEqual({
+      collection_id: COL,
+    });
   });
 });

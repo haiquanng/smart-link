@@ -61,12 +61,14 @@ PWA (Inbox | Search | Collections | Rate limit | `rate_limits` table + `hit_rate
   "collections": {
     "id": "uuid pk",
     "user_id": "uuid fk, RLS",
-    "name": "text",
-    "public_slug": "text, nullable, unguessable; non-null means shareable read-only"
+    "name": "text, 1-60 chars after trim",
+    "public_slug": "text, nullable, unguessable; non-null means shareable read-only",
+    "created_at": "timestamptz default now()"
   },
   "collection_items": {
     "collection_id": "uuid fk",
     "item_id": "uuid fk",
+    "user_id": "uuid fk, RLS; insert/update also require the collection and the item to belong to auth.uid()",
     "primary key": ["collection_id", "item_id"]
   },
   "api_tokens": {
@@ -113,6 +115,9 @@ At least one of `url`, `note`, or `image_path` is required.
 The browser calls Edge Function `search` (`POST /functions/v1/search`, user JWT, body `{ query, filters }` validated by Zod). It embeds the query with `gemini-embedding-2` (`task: search result | query: {q}`, 768 dims, ~2s timeout) and calls `search_items` with the caller's JWT so RLS still applies. If embedding fails, it calls with `query_embedding = null`. The Gemini key never reaches the browser.
 
 Tapping a card opens the original source (`url`, or the signed screenshot for screenshot-only items). There is no in-app detail view.
+
+## Collections
+`user_collections()` (security invoker) returns the caller's collections with `item_count`, newest first. A collection's items are read with an inner embed on `collection_items` (`select=...,collection_items!inner()`), so no extra function. Deleting a collection cascades memberships only; items stay. Search filters by one collection via `filters.collection_id` (URL param `col`).
 
 ## Known limits
 - Facebook, Instagram, Threads often block content fetch. The note and screenshot cover this.
