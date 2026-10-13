@@ -83,8 +83,8 @@ jobs:
 
       - run: npm run test:integration
 
-      - name: Build the Chrome extension for its e2e
-        run: npm run build:extension
+      # The extension e2e (tests/e2e/live/extension.spec.ts) runs locally only:
+      # without extension/dist it skips itself. Job 1 still builds the bundle.
       - run: npx playwright install --with-deps chromium
       - name: E2E (dev server, mocked + live)
         run: npx playwright test
