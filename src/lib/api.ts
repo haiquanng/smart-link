@@ -8,6 +8,7 @@ import { EMPTY_FILTERS, toRequestFilters, type SearchFilters } from '@/lib/searc
 import { ITEM_COLUMNS } from '@/lib/itemColumns';
 import { collectionsApi } from '@/lib/collectionsApi';
 import { fetchPublicCollection } from '@/lib/publicCollection';
+import { resurfaceApi } from '@/lib/resurfaceApi';
 import type { ApiToken, Item } from '@/types/item';
 
 
@@ -184,6 +185,7 @@ export const api = {
 
   collections: collectionsApi,
   publicCollection: fetchPublicCollection,
+  resurface: resurfaceApi,
 
   // --- API tokens ---------------------------------------------------------
   async listTokens(): Promise<ApiToken[]> {

@@ -18,7 +18,6 @@ export const vi = {
     copy: 'Sao chép',
     copied: 'Đã sao chép',
     close: 'Đóng',
-    comingSoon: 'Sắp có',
   },
 
   auth: {
@@ -138,6 +137,23 @@ export const vi = {
     cta: 'Tạo kho link của riêng bạn',
   },
 
+  resurface: {
+    title: 'Nhắc lại',
+    subtitle: 'Vài link cũ bạn chưa xem lại. Mỗi ngày tối đa 3 mục.',
+    count: (n: number) => `${n} mục hôm nay`,
+    open: 'Mở',
+    dismiss: 'Bỏ qua',
+    emptyTitle: 'Hôm nay không có gì để nhắc',
+    empty: 'Link bạn lưu từ 3 ngày trước sẽ lần lượt quay lại đây.',
+    loadError: 'Không tải được mục nhắc lại.',
+    settingsTitle: 'Nhắc lại',
+    reset: 'Nhắc lại từ đầu',
+    resetHint: 'Các mục đã xem hoặc bỏ qua sẽ được nhắc lại.',
+    resetTitle: 'Nhắc lại tất cả từ đầu?',
+    resetDescription: 'Mọi mục đã xem sẽ có thể quay lại trong tab Nhắc lại.',
+    resetDone: 'Đã đặt lại.',
+  },
+
   settings: {
     title: 'Cài đặt',
     account: 'Tài khoản',
@@ -173,7 +189,4 @@ export const vi = {
     other: 'Ghi chú',
   },
 
-  placeholder: {
-    resurface: 'Tính năng nhắc lại sẽ có ở giai đoạn sau.',
-  },
 } as const;

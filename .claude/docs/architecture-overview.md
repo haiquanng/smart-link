@@ -21,7 +21,7 @@ PWA (Inbox | Search | Collections | Rate limit | `rate_limits` table + `hit_rate
 | Enrich retry | `pg_cron` + `pg_net` -> `enrich` `{ "retry_stuck": true }` every 15 min | Re-runs items `pending` >10 min or `enrich_failed`, while `enrich_attempts < 3`, 10 per run; auth by `CRON_SECRET` |
 | Storage | Supabase Storage, private bucket `screenshots` (5MB, jpeg/png/webp) | Path `{user_id}/{uuid}.jpg`, owner-only RLS, no update; signed URLs (1h, cached 50 min) |
 | Sweep | Edge Function `sweep-screenshots` via `pg_cron` + `pg_net` | Daily; deletes objects >24h old not referenced by `items.image_path`; auth by `CRON_SECRET` |
-| Resurface | `pg_cron` or scheduled function | Daily pick of old, unseen items |
+| Resurface | `resurface_today(p_today)` + `resurface_picks` table | Picks made lazily on the first open of the user's local day (up to 3 oldest unseen, >=3 days old), stored so the list is stable all day; open/dismiss sets `seen_at`; `resurface_reset()` clears `seen_at` and picks. No cron needed |
 
 ## Data model (JSON)
 ```json
@@ -87,6 +87,12 @@ PWA (Inbox | Search | Collections | Rate limit | `rate_limits` table + `hit_rate
     "window_start": "timestamptz, start of the fixed window",
     "hits": "int",
     "primary key": ["user_id", "bucket", "window_start"]
+  },
+  "resurface_picks": {
+    "user_id": "uuid fk, RLS",
+    "pick_date": "date, the user's local day",
+    "item_id": "uuid fk items, cascade",
+    "primary key": ["user_id", "pick_date", "item_id"]
   },
   "profiles": {
     "id": "uuid pk fk auth.users, RLS (id = auth.uid())",
