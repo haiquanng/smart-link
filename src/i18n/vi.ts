@@ -194,6 +194,13 @@ export const vi = {
     resetTitle: 'Nhắc lại tất cả từ đầu?',
     resetDescription: 'Mọi mục đã xem sẽ có thể quay lại trong tab Nhắc lại.',
     resetDone: 'Đã đặt lại.',
+    pushToggle: 'Nhắc tôi mỗi tối',
+    pushHint: 'Khoảng 19 giờ, chỉ khi có link cũ chờ bạn xem lại.',
+    pushInstallFirst:
+      'Để nhận thông báo, hãy thêm Smart Link vào màn hình chính (Safari: Chia sẻ → Thêm vào MH chính), rồi mở từ biểu tượng đó.',
+    pushUnsupported: 'Thiết bị này chưa hỗ trợ thông báo (iPhone cần iOS 16.4 trở lên). Bạn vẫn xem được trong tab Nhắc lại.',
+    pushBlocked: 'Thông báo đang bị chặn. Bật lại trong cài đặt của trình duyệt hoặc điện thoại.',
+    pushError: 'Không bật được thông báo, thử lại.',
   },
 
   settings: {

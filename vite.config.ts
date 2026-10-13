@@ -11,7 +11,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
-        importScripts: ['share-target-sw.js'],
+        importScripts: ['share-target-sw.js', 'push-sw.js'],
         // The POST is answered by the imported handler, never by the shell.
         navigateFallbackDenylist: [/^\/share-target/],
       },

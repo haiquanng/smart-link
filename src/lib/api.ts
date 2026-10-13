@@ -10,6 +10,7 @@ import { collectionsApi } from '@/lib/collectionsApi';
 import { fetchPublicCollection } from '@/lib/publicCollection';
 import { resurfaceApi } from '@/lib/resurfaceApi';
 import { itemEditApi } from '@/lib/itemEditApi';
+import { pushApi } from '@/lib/pushApi';
 import type { ApiToken, Item } from '@/types/item';
 
 
@@ -193,6 +194,7 @@ export const api = {
   publicCollection: fetchPublicCollection,
   resurface: resurfaceApi,
   itemEdit: itemEditApi,
+  push: pushApi,
 
   // --- API tokens ---------------------------------------------------------
   async listTokens(): Promise<ApiToken[]> {
