@@ -34,7 +34,8 @@ Per issue:
 Claude may commit, push branches, open PRs and comment on issues. Claude never merges a PR, never pushes to `main`, never force-pushes, never tags. Production deploys (`supabase db push`, `functions deploy`, secrets) are run by hand by the owner (see Deploy).
 
 ## CI
-- `.github/workflows/ci.yml` (every push): typecheck, lint, unit, build, `deno check` of all functions; then a job that starts local Supabase from scratch (all migrations), serves functions, seeds users (`npm run seed:local`, local URLs only), and runs `test:integration`, Playwright (mocked + live) and the preview service-worker spec. Failures upload `test-results/`.
+- `.github/workflows/ci.yml` (every push): typecheck, lint, unit, build (app + extension), `deno check` of all functions. A few minutes.
+- `.github/workflows/integration.yml`: starts local Supabase from scratch (all migrations), serves functions, seeds users (`npm run seed:local`, local URLs only), and runs `test:integration`, Playwright (mocked + live) and the preview service-worker spec. Failures upload `test-results/`. Starting Supabase alone takes ~2 min, so it runs only when `supabase/**`, `tests/integration/**`, `tests/e2e/live/**` or the seed script change, on PRs into `main` (release), or by hand (Actions -> Integration -> Run workflow). UI-only PRs skip it; run the live specs locally for those.
 - Frontend: Vercel's Git integration builds `main` (production) and other branches (previews). Env vars live in Vercel.
 
 ## Deploy (manual)
