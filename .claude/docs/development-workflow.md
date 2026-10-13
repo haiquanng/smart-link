@@ -69,9 +69,11 @@ Set the same value as an edge function secret: `supabase secrets set CRON_SECRET
 - `vercel.json` at the repo root handles the SPA fallback and keeps `sw.js` uncached so updates reach installed PWAs.
 
 ## Web Push setup
+**Paused since 2026-10-13** (owner decision): migration `20261013000008` unschedules `send-reminders`, and without `VITE_VAPID_PUBLIC_KEY` the whole push block is hidden in Settings. Resurface still works in its tab. To resume: set the keys below, then re-run the `cron.schedule` block from `20261013000006` in a new migration.
+
 - `npm run -s gen:vapid` prints a key pair. Public key: Vercel env `VITE_VAPID_PUBLIC_KEY` and function secret `VAPID_PUBLIC_KEY`. Private key: `supabase secrets set VAPID_PRIVATE_KEY=…` only. Optional `VAPID_SUBJECT` (`mailto:` contact).
 - Migration `20261013000006` schedules `send-reminders` hourly using the same Vault secrets (`project_url`, `cron_secret`). Deploy with `supabase functions deploy send-reminders` (verify_jwt off in `config.toml`; it checks `CRON_SECRET` itself).
-- Without `VITE_VAPID_PUBLIC_KEY` the toggle is hidden; without the VAPID secrets the function answers 503. Resurface still works in the tab.
+- Without `VITE_VAPID_PUBLIC_KEY` the push block in Settings is hidden; without the VAPID secrets the function answers 503. Resurface still works in the tab.
 - `PUSH_EXTRA_HOSTS` is for local tests only (fake push service); never set it in production.
 
 ## Rate limits
