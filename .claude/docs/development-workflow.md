@@ -53,6 +53,26 @@ Set the same value as an edge function secret: `supabase secrets set CRON_SECRET
 - Supabase Auth -> URL Configuration: set Site URL to the production domain and add the Vercel domain (and preview pattern if wanted) to Redirect URLs.
 - `vercel.json` at the repo root handles the SPA fallback and keeps `sw.js` uncached so updates reach installed PWAs.
 
+## Rate limits
+- Migration `20261013000001` adds `rate_limits` and `hit_rate_limit()`. `ingest` and `search` call it per user; a 429 carries `Retry-After` and the client keeps the input.
+- Defaults: ingest 30/min and 500/day, search 60/min. Override with function secrets `RATE_LIMIT_INGEST_PER_MIN`, `RATE_LIMIT_INGEST_PER_DAY`, `RATE_LIMIT_SEARCH_PER_MIN`.
+- Integration test `tests/integration/rateLimit.integration.test.ts` runs against local Supabase (`npx supabase start`) with two test user ids.
+- Deno functions can be type-checked without a local install: `docker run --rm -v "$PWD/supabase/functions:/fn" -w /fn denoland/deno:2.1.4 deno check */index.ts`.
+
+## Public share deploy
+`supabase functions deploy public-collection --no-verify-jwt` (also set in `config.toml`). Visitors have no session; the function only answers for a valid live slug.
+
+## Local functions
+`npx supabase functions serve --env-file <file>` runs every function against the local stack, so `tests/integration` (ingest, rate limit, collections, public share) and `tests/e2e/live` can run fully offline from production.
+
+## Preview e2e (service worker)
+`tests/e2e/live/shareTargetPost.spec.ts` needs the built worker: `VITE_SUPABASE_URL=… VITE_SUPABASE_ANON_KEY=… npx vite build --outDir /tmp/sl-preview && npx vite preview --outDir /tmp/sl-preview --port 5288`, then run Playwright with `E2E_PREVIEW=1 E2E_PORT=5288` plus the live env below. On a real Android phone: install the PWA from Chrome, then share from any app and pick Smart Link.
+
+## Live e2e
+Specs in `tests/e2e/live/` run against a real Supabase with no network mocks and skip unless configured. Locally: `npx supabase start`, create a confirmed user, then
+`VITE_SUPABASE_URL=http://localhost:54321 VITE_SUPABASE_ANON_KEY=<local anon> E2E_SERVICE_ROLE_KEY=<local service role> E2E_USER=<email:password> E2E_PORT=<free port> npm run test:e2e`.
+The mocked specs keep working in the same run because they intercept `localhost:54321` themselves.
+
 ## Open questions
 ## Resolved
 - Enrich runs via a fire-and-forget call from ingest (non-blocking), re-runnable on demand, with a pg_cron retry fallback (`retry-enrich`).

@@ -129,7 +129,7 @@ describe.skipIf(!configured)('ingest screenshots (integration)', () => {
     const path = `${userId}/${crypto.randomUUID()}.jpg`;
     const { error } = await admin.storage
       .from('screenshots')
-      .upload(path, new Blob(['x'], { type: 'image/jpeg' }), {
+      .upload(path, new Uint8Array([0xff, 0xd8, 0xff]) /* jsdom's Blob never finishes uploading */, {
         contentType: 'image/jpeg',
       });
     expect(error).toBeNull();

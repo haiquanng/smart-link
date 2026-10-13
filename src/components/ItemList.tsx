@@ -19,6 +19,7 @@ export function ItemList({ items }: { items: Item[] }) {
             item={item}
             imageUrl={item.image_path ? imageUrls[item.image_path] : undefined}
             onDelete={(i) => del.mutate(i)}
+            canOrganize
           />
         </li>
       ))}

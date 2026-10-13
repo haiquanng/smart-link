@@ -50,7 +50,9 @@ export function SignInScreen() {
   return (
     <main className="flex min-h-dvh items-center justify-center px-5 py-10">
       <div className="w-full max-w-sm animate-fade">
-        <Wordmark large />
+        <h1>
+          <Wordmark large />
+        </h1>
         <p className="mt-2 text-stone-500">{vi.auth.heroTitle}</p>
 
         <form onSubmit={onSubmit} className="mt-10 flex flex-col gap-3">

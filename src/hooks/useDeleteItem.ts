@@ -23,6 +23,8 @@ export function useDeleteItem() {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ITEMS_KEY });
       qc.invalidateQueries({ queryKey: ['search'] });
+      qc.invalidateQueries({ queryKey: ['collection-items'] });
+      qc.invalidateQueries({ queryKey: ['collections'] });
     },
   });
 }

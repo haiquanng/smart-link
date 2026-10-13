@@ -1,5 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import type { ReactElement } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ItemCard } from '@/components/ItemCard';
 import type { Item } from '@/types/item';
 
@@ -21,6 +23,11 @@ const base: Item = {
   seen_at: null,
   created_at: new Date().toISOString(),
 };
+
+// The edit sheet uses React Query; tags are only fetched once it opens.
+function withQuery(ui: ReactElement) {
+  return <QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>;
+}
 
 describe('ItemCard', () => {
   it('shows the user note as the primary line (business rule 14)', () => {
@@ -60,22 +67,42 @@ describe('ItemCard', () => {
     );
   });
 
-  it('asks in a dialog before deleting, and cancel keeps the item', () => {
+  it('deletes from the edit sheet after a confirm, and cancel keeps the item', () => {
     const onDelete = vi.fn();
-    render(<ItemCard item={base} onDelete={onDelete} />);
+    render(withQuery(<ItemCard item={base} onDelete={onDelete} />));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Xoá' }));
-    const dialog = screen.getByRole('alertdialog');
-    expect(dialog).toHaveTextContent('Xoá mục này?');
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Huỷ' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sửa' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Xoá' }));
+    const confirm = screen.getByRole('alertdialog');
+    expect(confirm).toHaveTextContent('Xoá mục này?');
+    fireEvent.click(within(confirm).getByRole('button', { name: 'Huỷ' }));
     expect(onDelete).not.toHaveBeenCalled();
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Xoá' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Xoá' }));
     fireEvent.click(
       within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Xoá' }),
     );
     expect(onDelete).toHaveBeenCalledWith(base);
+  });
+
+  it('opens the edit sheet with the saved note and title', () => {
+    render(withQuery(<ItemCard item={base} onDelete={vi.fn()} />));
+    fireEvent.click(screen.getByRole('button', { name: 'Sửa' }));
+    const sheet = screen.getByRole('dialog');
+    expect(within(sheet).getByLabelText('Ghi chú')).toHaveValue('cách định giá SaaS');
+    expect(within(sheet).getByLabelText(/Tiêu đề/)).toHaveValue('A Facebook post');
+  });
+
+  it('offers a retry on a failed item in owner views only', () => {
+    const failed = { ...base, status: 'enrich_failed' as const };
+    const { unmount } = render(withQuery(<ItemCard item={failed} canOrganize onDelete={vi.fn()} />));
+    expect(screen.getByText(/chưa xử lý được/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Xử lý lại' })).toBeInTheDocument();
+    unmount();
+
+    render(<ItemCard item={failed} />);
+    expect(screen.queryByRole('button', { name: 'Xử lý lại' })).not.toBeInTheDocument();
   });
 
   it('clamps long notes so cards keep the same height', () => {
@@ -142,11 +169,11 @@ describe('ItemCard', () => {
       expect(screen.queryByRole('link')).not.toBeInTheDocument();
     });
 
-    it('keeps the delete button outside the link', () => {
-      render(<ItemCard item={base} onDelete={vi.fn()} />);
+    it('keeps the action buttons outside the link', () => {
+      render(withQuery(<ItemCard item={base} onDelete={vi.fn()} />));
       const link = screen.getByRole('link');
       expect(within(link).queryByRole('button')).not.toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Xoá' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Sửa' })).toBeInTheDocument();
     });
   });
 });

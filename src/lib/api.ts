@@ -3,12 +3,15 @@ import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 import { env } from '@/lib/env';
 import { generateApiToken, hashApiToken } from '@/lib/apiToken';
-import { sourceSchema } from '@/lib/ingestPayload';
+import { sourceSchema, type Channel } from '@/lib/ingestPayload';
 import { EMPTY_FILTERS, toRequestFilters, type SearchFilters } from '@/lib/searchParams';
+import { ITEM_COLUMNS } from '@/lib/itemColumns';
+import { collectionsApi } from '@/lib/collectionsApi';
+import { fetchPublicCollection } from '@/lib/publicCollection';
+import { resurfaceApi } from '@/lib/resurfaceApi';
+import { itemEditApi } from '@/lib/itemEditApi';
 import type { ApiToken, Item } from '@/types/item';
 
-const ITEM_COLUMNS =
-  'id, url, url_normalized, source, channel, note, title, title_origin, summary, content_text, image_path, preview_image_url, status, enrich_attempts, seen_at, created_at';
 
 // Loose on purpose: the function owns the row shape, we only need a list.
 const searchResponseSchema = z.object({
@@ -25,6 +28,13 @@ export type TagCount = z.infer<typeof tagCountsSchema>[number];
 const SCREENSHOT_BUCKET = 'screenshots';
 export const SIGNED_URL_TTL_SECONDS = 3600;
 
+/** Ingest answered 429; the caller keeps the input so the user can retry. */
+export class RateLimitedError extends Error {
+  constructor() {
+    super('rate limited');
+  }
+}
+
 async function postIngest(body: Record<string, unknown>): Promise<void> {
   const session = await api.getSession();
   if (!session) throw new Error('not signed in');
@@ -36,6 +46,7 @@ async function postIngest(body: Record<string, unknown>): Promise<void> {
     },
     body: JSON.stringify(body),
   });
+  if (res.status === 429) throw new RateLimitedError();
   if (!res.ok) throw new Error(`save failed (${res.status})`);
 }
 
@@ -90,17 +101,22 @@ export const api = {
 
   /** In-app capture (channel #2). Goes through the single ingest endpoint
    *  using the session JWT, so normalize/dedupe/enrich stay server-side. */
-  async saveLink(url: string, note: string): Promise<void> {
+  async saveLink(url: string, note: string, channel: Channel = 'manual'): Promise<void> {
     await postIngest({
       url: url.trim() || undefined,
       note: note.trim() || undefined,
-      channel: 'manual',
+      channel,
     });
   },
 
   /** Screenshot capture: upload to the private bucket with the user session,
    *  then ingest verifies ownership and the object before saving the row. */
-  async saveScreenshot(image: Blob, url: string, note: string): Promise<void> {
+  async saveScreenshot(
+    image: Blob,
+    url: string,
+    note: string,
+    channel: Channel = 'upload',
+  ): Promise<void> {
     const session = await api.getSession();
     if (!session) throw new Error('not signed in');
     const path = `${session.user.id}/${crypto.randomUUID()}.jpg`;
@@ -116,7 +132,7 @@ export const api = {
       await postIngest({
         url: url.trim() || undefined,
         note: note.trim() || undefined,
-        channel: 'upload',
+        channel,
         image_path: path,
       });
     } catch (err) {
@@ -172,6 +188,11 @@ export const api = {
     if (error) throw error;
     return tagCountsSchema.parse(data ?? []);
   },
+
+  collections: collectionsApi,
+  publicCollection: fetchPublicCollection,
+  resurface: resurfaceApi,
+  itemEdit: itemEditApi,
 
   // --- API tokens ---------------------------------------------------------
   async listTokens(): Promise<ApiToken[]> {

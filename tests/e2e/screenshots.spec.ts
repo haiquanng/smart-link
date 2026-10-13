@@ -129,7 +129,8 @@ test('uploads two screenshots, shows thumbnails, deletes one', async ({ page }) 
   await expect(page.getByRole('button', { name: 'Bỏ ảnh' })).toHaveCount(2);
 
   const addButton = page.getByRole('button', { name: 'Thêm ảnh' });
-  expect((await addButton.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+  // Rounded: the fade-in transform can report 43.9999px mid-animation.
+  expect(Math.round((await addButton.boundingBox())?.height ?? 0)).toBeGreaterThanOrEqual(44);
 
   await page.getByRole('button', { name: 'Lưu', exact: true }).click();
 
@@ -141,14 +142,19 @@ test('uploads two screenshots, shows thumbnails, deletes one', async ({ page }) 
     /object\/sign\/screenshots\//,
   );
 
-  const del = cards.first().getByRole('button', { name: 'Xoá' });
-  expect((await del.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
-  await del.click();
+  const edit = cards.first().getByRole('button', { name: 'Sửa' });
+  expect(Math.round((await edit.boundingBox())?.height ?? 0)).toBeGreaterThanOrEqual(44);
+  await edit.click();
+  const sheet = page.getByRole('dialog');
+  await sheet.getByRole('button', { name: 'Xoá' }).click();
   const dialog = page.getByRole('alertdialog');
   await dialog.getByRole('button', { name: 'Huỷ' }).click();
+  // The open sheet hides the page from the accessibility tree; close it first.
+  await page.keyboard.press('Escape');
   await expect(cards).toHaveCount(2);
 
-  await del.click();
+  await edit.click();
+  await sheet.getByRole('button', { name: 'Xoá' }).click();
   await dialog.getByRole('button', { name: 'Xoá' }).click();
   await expect(cards).toHaveCount(1);
 });

@@ -4,6 +4,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Spinner } from '@/components/Spinner';
 import { ErrorState } from '@/components/ErrorState';
 import { CopyButton } from '@/components/CopyButton';
+import { ResurfaceSettings } from '@/components/ResurfaceSettings';
 import { useCreateToken, useRevokeToken, useTokens } from '@/hooks/useTokens';
 import { api } from '@/lib/api';
 import { env } from '@/lib/env';
@@ -140,6 +141,11 @@ export function SettingsScreen({ email }: SettingsScreenProps) {
               )}
             </div>
           </div>
+        </div>
+
+        <div>
+          <h2 className={SECTION}>{vi.resurface.settingsTitle}</h2>
+          <ResurfaceSettings />
         </div>
 
         <div>

@@ -1,10 +1,11 @@
 import { useState, type ReactNode } from 'react';
-import { Trash2 } from 'lucide-react';
-import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { CollectionPicker } from '@/components/CollectionPicker';
+import { EditItemDialog } from '@/components/EditItemDialog';
 import { vi } from '@/i18n/vi';
 import { formatRelativeTime } from '@/lib/formatDate';
 import { cardHref } from '@/lib/itemLink';
-import { isEnriching } from '@/lib/itemStatus';
+import { isEnriching, needsRetry } from '@/lib/itemStatus';
+import { RetryEnrichButton } from '@/components/RetryEnrichButton';
 import type { Item } from '@/types/item';
 import type { Source } from '@/lib/ingestPayload';
 
@@ -30,7 +31,13 @@ const SOURCE_COLOR: Record<Source, string> = {
 
 const SOCIAL = new Set<Source>(['facebook', 'instagram', 'threads']);
 
-function MainArea({ href, children }: { href: string | null; children: ReactNode }) {
+interface MainAreaProps {
+  href: string | null;
+  onOpen?: () => void;
+  children: ReactNode;
+}
+
+function MainArea({ href, onOpen, children }: MainAreaProps) {
   const layout = 'flex min-w-0 flex-1 gap-3';
   if (!href) return <div className={layout}>{children}</div>;
   return (
@@ -38,6 +45,7 @@ function MainArea({ href, children }: { href: string | null; children: ReactNode
       href={href}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={onOpen}
       className={`${layout} rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-accent`}
     >
       {children}
@@ -50,10 +58,14 @@ interface ItemCardProps {
   /** Signed URL of the uploaded screenshot; wins over the scraped preview. */
   imageUrl?: string;
   onDelete?: (item: Item) => void;
+  /** Shows the add-to-collection button (owner views only). */
+  canOrganize?: boolean;
+  /** Called when the user taps through to the source. */
+  onOpen?: () => void;
 }
 
 /** Shows the user's note first, then title, then summary (business rule 14). */
-export function ItemCard({ item, imageUrl, onDelete }: ItemCardProps) {
+export function ItemCard({ item, imageUrl, onDelete, canOrganize = false, onOpen }: ItemCardProps) {
   const [imageBroken, setImageBroken] = useState(false);
   // The source label already names social networks; the domain only adds
   // information for ordinary websites.
@@ -64,7 +76,10 @@ export function ItemCard({ item, imageUrl, onDelete }: ItemCardProps) {
   const secondary = item.note ? (item.title ?? item.summary) : item.title ? item.summary : null;
   // Rule 8: AI-made content must be visibly distinct from the user's own.
   const aiTitle = !item.note && !!item.title && item.title_origin === 'ai';
-  const enriching = isEnriching(item, Date.now());
+  const now = Date.now();
+  const enriching = isEnriching(item, now);
+  // Only the owner can retry; public views have no actions.
+  const failed = canOrganize && needsRetry(item, now);
   const imageSrc = imageUrl ?? item.preview_image_url;
   const showImage = imageSrc && !imageBroken;
   const href = cardHref(item, imageUrl);
@@ -72,7 +87,7 @@ export function ItemCard({ item, imageUrl, onDelete }: ItemCardProps) {
   return (
     // h-full + clamped text keeps every card in the grid the same height.
     <article className="flex h-full animate-fade gap-3 rounded-xl border border-line bg-white p-4 transition-colors hover:border-stone-300">
-      <MainArea href={href}>
+      <MainArea href={href} onOpen={onOpen}>
         <div className="flex min-w-0 flex-1 flex-col">
           <p
             title={primary}
@@ -110,6 +125,7 @@ export function ItemCard({ item, imageUrl, onDelete }: ItemCardProps) {
             <span aria-hidden="true">·</span>
             <span className="shrink-0">{formatRelativeTime(item.created_at)}</span>
             {enriching && <span className="shrink-0 text-accent">· {vi.inbox.statusPending}</span>}
+            {failed && <span className="shrink-0 text-amber-600">· {vi.inbox.statusFailed}</span>}
           </p>
         </div>
 
@@ -126,22 +142,12 @@ export function ItemCard({ item, imageUrl, onDelete }: ItemCardProps) {
         )}
       </MainArea>
 
-      {onDelete && (
-        <ConfirmDialog
-          title={vi.inbox.deleteTitle}
-          description={vi.inbox.deleteDescription}
-          confirmLabel={vi.inbox.delete}
-          tone="danger"
-          onConfirm={() => onDelete(item)}
-        >
-          <button
-            type="button"
-            aria-label={vi.inbox.delete}
-            className="-mr-2 -mt-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-stone-400 hover:bg-stone-100 hover:text-red-600"
-          >
-            <Trash2 size={18} aria-hidden="true" />
-          </button>
-        </ConfirmDialog>
+      {(onDelete || canOrganize) && (
+        <div className="-mr-2 -mt-2 flex shrink-0 flex-col">
+          {canOrganize && <CollectionPicker itemId={item.id} />}
+          {failed && <RetryEnrichButton itemId={item.id} />}
+          {onDelete && <EditItemDialog item={item} onDelete={onDelete} />}
+        </div>
       )}
     </article>
   );

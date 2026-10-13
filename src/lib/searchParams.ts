@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { sourceSchema, type Source } from '@/lib/ingestPayload';
 import { MAX_TAG_FILTERS, type SearchRequestFilters } from '@/lib/searchBody';
 
@@ -8,6 +9,7 @@ export interface SearchFilters {
   sources: Source[];
   tags: string[];
   range: TimeRange;
+  collectionId: string | null;
 }
 
 export interface SearchState {
@@ -15,7 +17,14 @@ export interface SearchState {
   filters: SearchFilters;
 }
 
-export const EMPTY_FILTERS: SearchFilters = { sources: [], tags: [], range: 'all' };
+export const EMPTY_FILTERS: SearchFilters = {
+  sources: [],
+  tags: [],
+  range: 'all',
+  collectionId: null,
+};
+
+const uuidSchema = z.string().uuid();
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -32,7 +41,9 @@ export function parseSearchParams(params: URLSearchParams): SearchState {
   );
   const rawRange = params.get('t');
   const range = TIME_RANGES.find((r) => r === rawRange) ?? 'all';
-  return { query: params.get('q') ?? '', filters: { sources, tags, range } };
+  const col = uuidSchema.safeParse(params.get('col'));
+  const collectionId = col.success ? col.data : null;
+  return { query: params.get('q') ?? '', filters: { sources, tags, range, collectionId } };
 }
 
 export function serializeSearchParams(query: string, filters: SearchFilters): URLSearchParams {
@@ -41,6 +52,7 @@ export function serializeSearchParams(query: string, filters: SearchFilters): UR
   if (filters.sources.length > 0) params.set('src', filters.sources.join(','));
   for (const tag of filters.tags) params.append('tag', tag);
   if (filters.range !== 'all') params.set('t', filters.range);
+  if (filters.collectionId) params.set('col', filters.collectionId);
   return params;
 }
 
@@ -60,5 +72,6 @@ export function toRequestFilters(filters: SearchFilters, now: Date): SearchReque
   if (filters.sources.length > 0) out.sources = filters.sources;
   if (filters.tags.length > 0) out.tags = filters.tags;
   if (filters.range !== 'all') out.from = fromDate(filters.range, now);
+  if (filters.collectionId) out.collection_id = filters.collectionId;
   return out;
 }

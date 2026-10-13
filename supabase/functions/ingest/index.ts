@@ -8,6 +8,7 @@ import { corsHeaders, json } from '../_shared/cors.ts';
 import { imagePathOwnedBy, validatePayload } from '../_shared/validate.ts';
 import { saveItem } from './saveItem.ts';
 import { bearer, hashApiToken } from '../_shared/token.ts';
+import { enforceLimits, INGEST_LIMITS } from '../_shared/rateLimit.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -73,6 +74,10 @@ Deno.serve(async (req) => {
     if (!userData.user) return json({ error: 'invalid token' }, 401);
     userId = userData.user.id;
   }
+
+  // Per user, so all of a user's tokens and their session share one budget.
+  const limited = await enforceLimits(admin, INGEST_LIMITS, userId);
+  if (limited) return limited;
 
   // 2. Validate the payload.
   let body: unknown;
