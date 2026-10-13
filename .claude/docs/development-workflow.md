@@ -21,10 +21,17 @@ Phase 0 and 1 are the biggest risk. Do not build UI polish before the Shortcut p
 3. `verify-changes` to run typecheck, lint, tests.
 4. `code-review` before merge.
 
-## Git
-- Claude never commits or pushes. Not `git commit`, not `git push`, not PRs or tags. Both are blocked in `.claude/settings.json`.
-- Claude leaves changes in the working tree and ends with a suggested branch name and commit message for the user to run.
-- User convention: branch per task `feat/<short-name>`, `fix/<short-name>`; imperative subject up to 72 chars; no force push; squash merge to `main`.
+## Git and PR flow
+Branches: `main` (production, Vercel prod), `dev` (integration), one `feat/<name>` / `fix/<name>` / `chore/<name>` per issue.
+
+Per issue:
+1. Branch from the newest unmerged feature branch, or from `dev` when nothing is pending. Stacking keeps shared files (`vi.ts`, `App.tsx`) conflict-free.
+2. Schema first: doc + migration, then code with tests (unit, integration against local Supabase, e2e at 390px).
+3. Verify: `npm run typecheck && npm run lint && npm test && npm run build`, local integration and e2e (sections below), a look at 390px and desktop.
+4. Commit (imperative subject <= 72 chars, `Closes #N` in the body), push the branch, open a PR into the branch it was cut from (the first in a stack targets `dev`). The PR lists what changed, how it was tested, what was not, and any deploy step.
+5. The owner reviews and merges, in stack order; GitHub retargets the next PR when its base branch is merged and deleted. `dev` -> `main` is a release PR, also merged by the owner.
+
+Claude may commit, push branches, open PRs and comment on issues. Claude never merges a PR, never pushes to `main`, never force-pushes, never tags. Production deploys (`supabase db push`, `functions deploy`, secrets) run from CI on `main` (see CI/CD) or by the owner.
 
 ## Environment
 `.env.example` names: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (frontend); `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY` (edge function secrets only).
