@@ -142,14 +142,19 @@ test('uploads two screenshots, shows thumbnails, deletes one', async ({ page }) 
     /object\/sign\/screenshots\//,
   );
 
-  const del = cards.first().getByRole('button', { name: 'Xoá' });
-  expect(Math.round((await del.boundingBox())?.height ?? 0)).toBeGreaterThanOrEqual(44);
-  await del.click();
+  const edit = cards.first().getByRole('button', { name: 'Sửa' });
+  expect(Math.round((await edit.boundingBox())?.height ?? 0)).toBeGreaterThanOrEqual(44);
+  await edit.click();
+  const sheet = page.getByRole('dialog');
+  await sheet.getByRole('button', { name: 'Xoá' }).click();
   const dialog = page.getByRole('alertdialog');
   await dialog.getByRole('button', { name: 'Huỷ' }).click();
+  // The open sheet hides the page from the accessibility tree; close it first.
+  await page.keyboard.press('Escape');
   await expect(cards).toHaveCount(2);
 
-  await del.click();
+  await edit.click();
+  await sheet.getByRole('button', { name: 'Xoá' }).click();
   await dialog.getByRole('button', { name: 'Xoá' }).click();
   await expect(cards).toHaveCount(1);
 });

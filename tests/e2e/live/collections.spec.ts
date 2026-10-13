@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { admin, insertItem, liveConfigured, liveUserId, signIn } from './helpers';
+import { admin, insertItem, liveConfigured, liveUserId, marker as uniq, signIn } from './helpers';
 
 test.skip(!liveConfigured, 'needs a live Supabase (see helpers.ts)');
 
 test('create a collection, add an item, rename, delete it', async ({ page }) => {
   const userId = await liveUserId();
-  const marker = `e2e ${Date.now()}`;
+  const marker = uniq('coll');
   const name = `Quán ăn ${Date.now() % 10000}`;
   const itemId = await insertItem(userId, { note: marker });
 

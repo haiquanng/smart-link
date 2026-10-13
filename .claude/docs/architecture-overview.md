@@ -18,6 +18,7 @@ PWA (Inbox | Search | Collections | Rate limit | `rate_limits` table + `hit_rate
 | DB | Postgres + pgvector + unaccent | RLS on all tables |
 | Ingest | Edge Function `ingest` | Single entry for all channels |
 | Enrich | Edge Function `enrich` | Triggered after insert; idempotent; retryable. One Gemini call (`GEMINI_MODEL`, default `gemini-3.5-flash-lite`) returns OCR + title + summary + tags as JSON; then `gemini-embedding-2` at 768 dims |
+| Enrich (user) | `enrich` with the owner's JWT: `{ item_id, mode: "embed" | "retry" }` | Ownership checked, 10/min per user. `embed` recomputes only the embedding after an edit (title, summary, tags untouched, so removed AI fields stay gone); `retry` runs full enrich again, ignoring the 3-attempt cap |
 | Enrich retry | `pg_cron` + `pg_net` -> `enrich` `{ "retry_stuck": true }` every 15 min | Re-runs items `pending` >10 min or `enrich_failed`, while `enrich_attempts < 3`, 10 per run; auth by `CRON_SECRET` |
 | Storage | Supabase Storage, private bucket `screenshots` (5MB, jpeg/png/webp) | Path `{user_id}/{uuid}.jpg`, owner-only RLS, no update; signed URLs (1h, cached 50 min) |
 | Sweep | Edge Function `sweep-screenshots` via `pg_cron` + `pg_net` | Daily; deletes objects >24h old not referenced by `items.image_path`; auth by `CRON_SECRET` |
@@ -123,6 +124,9 @@ At least one of `url`, `note`, or `image_path` is required.
 The browser calls Edge Function `search` (`POST /functions/v1/search`, user JWT, body `{ query, filters }` validated by Zod). It embeds the query with `gemini-embedding-2` (`task: search result | query: {q}`, 768 dims, ~2s timeout) and calls `search_items` with the caller's JWT so RLS still applies. If embedding fails, it calls with `query_embedding = null`. The Gemini key never reaches the browser.
 
 Tapping a card opens the original source (`url`, or the signed screenshot for screenshot-only items). There is no in-app detail view.
+
+## Editing
+The card's pencil opens an edit sheet (note, title, remove AI summary, tags; delete lives there too). Writes go straight to `items` / `tags` / `item_tags` under RLS; `item_tags` inserts require the item and the tag to belong to the caller. A typed title is stored with `title_origin = 'user'`; enrich only fills an empty title and only replaces an `ai` one, so user titles survive (rule 9). Adding a tag that exists as AI on the item turns it into a user tag; enrich only ever replaces `origin = ai` rows. After saving, the client calls `enrich` in `embed` mode.
 
 ## Collections
 `user_collections()` (security invoker) returns the caller's collections with `item_count`, newest first. A collection's items are read with an inner embed on `collection_items` (`select=...,collection_items!inner()`), so no extra function. Deleting a collection cascades memberships only; items stay. Search filters by one collection via `filters.collection_id` (URL param `col`).

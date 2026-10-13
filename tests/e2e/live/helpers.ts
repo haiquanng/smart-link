@@ -46,6 +46,11 @@ export async function insertItem(userId: string, row: Record<string, unknown>): 
   return rows[0].id;
 }
 
+/** Unique per call, so parallel specs never match each other's rows. */
+export function marker(prefix: string): string {
+  return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
+}
+
 export async function signIn(page: Page): Promise<void> {
   await page.goto('/inbox');
   await page.getByLabel('Email').fill(EMAIL);

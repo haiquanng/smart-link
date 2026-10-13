@@ -9,6 +9,7 @@ import { ITEM_COLUMNS } from '@/lib/itemColumns';
 import { collectionsApi } from '@/lib/collectionsApi';
 import { fetchPublicCollection } from '@/lib/publicCollection';
 import { resurfaceApi } from '@/lib/resurfaceApi';
+import { itemEditApi } from '@/lib/itemEditApi';
 import type { ApiToken, Item } from '@/types/item';
 
 
@@ -186,6 +187,7 @@ export const api = {
   collections: collectionsApi,
   publicCollection: fetchPublicCollection,
   resurface: resurfaceApi,
+  itemEdit: itemEditApi,
 
   // --- API tokens ---------------------------------------------------------
   async listTokens(): Promise<ApiToken[]> {

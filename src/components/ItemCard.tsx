@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from 'react';
-import { Trash2 } from 'lucide-react';
 import { CollectionPicker } from '@/components/CollectionPicker';
-import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { EditItemDialog } from '@/components/EditItemDialog';
 import { vi } from '@/i18n/vi';
 import { formatRelativeTime } from '@/lib/formatDate';
 import { cardHref } from '@/lib/itemLink';
@@ -141,23 +140,7 @@ export function ItemCard({ item, imageUrl, onDelete, canOrganize = false, onOpen
       {(onDelete || canOrganize) && (
         <div className="-mr-2 -mt-2 flex shrink-0 flex-col">
           {canOrganize && <CollectionPicker itemId={item.id} />}
-          {onDelete && (
-            <ConfirmDialog
-              title={vi.inbox.deleteTitle}
-              description={vi.inbox.deleteDescription}
-              confirmLabel={vi.inbox.delete}
-              tone="danger"
-              onConfirm={() => onDelete(item)}
-            >
-              <button
-                type="button"
-                aria-label={vi.inbox.delete}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-stone-400 hover:bg-stone-100 hover:text-red-600"
-              >
-                <Trash2 size={18} aria-hidden="true" />
-              </button>
-            </ConfirmDialog>
-          )}
+          {onDelete && <EditItemDialog item={item} onDelete={onDelete} />}
         </div>
       )}
     </article>
