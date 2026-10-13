@@ -29,7 +29,7 @@ Status as of 2026-10-13. Issues live on GitHub (`haiquanng/smart-link`); this is
 
 ## Scope decisions (2026-10-13)
 - Web Push reminders: **paused**. Code, table and function stay; cron unscheduled, Settings hides the block. Resume only if the owner asks.
-- Deploy: GitHub Actions `deploy.yml` (no `supabase link`) stays; CI/CD works.
+- Deploy: manual (`db push`, `functions deploy --use-api`); the GitHub Actions deploy is removed in PR #29 because each run took 4+ minutes. CI checks stay.
 - Focus: Chrome extension (#12) is the next capture work.
 
 ## Later (no issue yet)
