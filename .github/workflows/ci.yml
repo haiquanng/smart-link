@@ -1,6 +1,7 @@
 name: CI
 
-# Every branch push; PRs from this repo show these checks. Forks are not used.
+# Fast checks on every branch push; PRs from this repo show them. Forks are not
+# used. The slow local-Supabase suite lives in integration.yml.
 on:
   push:
   workflow_dispatch:
@@ -38,68 +39,3 @@ jobs:
       - name: Type-check edge functions
         working-directory: supabase/functions
         run: deno check */index.ts
-
-  integration:
-    name: Integration + e2e (local Supabase)
-    needs: checks
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - uses: supabase/setup-cli@v1
-        with:
-          version: 2.120.0
-
-      - name: Start Supabase (all migrations applied from scratch)
-        run: supabase start -x studio,imgproxy,inbucket,logflare,vector,supavisor
-
-      - name: Serve edge functions
-        run: |
-          # Throwaway secrets for this run only; the fake push service in the
-          # send-reminders test is reached via host.docker.internal.
-          CRON_SECRET=$(openssl rand -hex 24)
-          # Ingest limits raised: the suites save far more than a person would;
-          # the limiter itself is tested directly in rateLimit.integration.test.ts.
-          { echo "CRON_SECRET=$CRON_SECRET"; npm run -s gen:vapid; echo "PUSH_EXTRA_HOSTS=host.docker.internal";
-            echo "RATE_LIMIT_INGEST_PER_MIN=1000"; echo "RATE_LIMIT_INGEST_PER_DAY=100000"; } > /tmp/functions.env
-          echo "SMART_LINK_CRON_SECRET=$CRON_SECRET" >> "$GITHUB_ENV"
-          nohup supabase functions serve --env-file /tmp/functions.env > /tmp/functions.log 2>&1 &
-          for i in $(seq 1 60); do
-            curl -s -X POST http://127.0.0.1:54321/functions/v1/public-collection \
-              -H 'Content-Type: application/json' -d '{"slug":"x"}' | grep -q 'not found' && exit 0
-            sleep 3
-          done
-          cat /tmp/functions.log; exit 1
-
-      - name: Seed test users and token
-        run: |
-          eval "$(supabase status -o env | grep -E '^(API_URL|SERVICE_ROLE_KEY|ANON_KEY)=')"
-          API_URL=$API_URL SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY ANON_KEY=$ANON_KEY npm run -s seed:local >> "$GITHUB_ENV"
-
-      - run: npm run test:integration
-
-      # The extension e2e (tests/e2e/live/extension.spec.ts) runs locally only:
-      # without extension/dist it skips itself. Job 1 still builds the bundle.
-      - run: npx playwright install --with-deps chromium
-      - name: E2E (dev server, mocked + live)
-        run: npx playwright test
-      - name: E2E (production preview, service worker)
-        run: npx playwright test tests/e2e/live/shareTargetPost.spec.ts
-        env:
-          E2E_PREVIEW: '1'
-          E2E_PORT: '4173'
-
-      - name: Function logs
-        if: failure()
-        run: cat /tmp/functions.log
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: playwright-results
-          path: test-results/
-          retention-days: 7

@@ -37,9 +37,12 @@ test('popup signs in, saves the tab on the extension channel, then shows it as s
 
     await popup.getByLabel('Mật khẩu').fill(liveUser.password);
     await popup.getByRole('button', { name: 'Đăng nhập' }).click();
+    // Wait for the signed-in view: until then the Email box is the first
+    // textbox, and on a slow runner the note would be typed into it.
+    await expect(popup.getByText(liveUser.email)).toBeVisible();
     // Not a site that blocks reading, so no screenshot by default.
     await expect(popup.getByLabel('Kèm ảnh chụp màn hình')).not.toBeChecked();
-    await popup.getByRole('textbox').first().fill(note);
+    await popup.getByPlaceholder('Ghi chú của bạn (tuỳ chọn)').fill(note);
     await popup.getByRole('button', { name: 'Lưu', exact: true }).click();
     await expect(popup.getByText('Đã lưu!')).toBeVisible();
 
