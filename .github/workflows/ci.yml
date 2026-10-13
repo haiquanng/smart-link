@@ -27,6 +27,9 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - run: npm run build:extension
+        env:
+          VITE_SUPABASE_URL: https://example.supabase.co
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.1.4
@@ -75,6 +78,8 @@ jobs:
 
       - run: npm run test:integration
 
+      - name: Build the Chrome extension for its e2e
+        run: npm run build:extension
       - run: npx playwright install --with-deps chromium
       - name: E2E (dev server, mocked + live)
         run: npx playwright test

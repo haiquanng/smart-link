@@ -144,6 +144,13 @@ export function SettingsScreen({ email }: SettingsScreenProps) {
         </div>
 
         <div>
+          <h2 className={SECTION}>{vi.settings.extensionTitle}</h2>
+          <div className={CARD}>
+            <p className="text-xs leading-relaxed text-stone-500">{vi.settings.extensionGuide}</p>
+          </div>
+        </div>
+
+        <div>
           <h2 className={SECTION}>{vi.resurface.settingsTitle}</h2>
           <ResurfaceSettings />
         </div>
