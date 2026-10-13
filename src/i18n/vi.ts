@@ -236,7 +236,7 @@ export const vi = {
     },
     extensionTitle: 'Tiện ích Chrome (máy tính)',
     extensionGuide:
-      'Lưu trang đang xem bằng một cú bấm. Mở chrome://extensions, bật Chế độ nhà phát triển, chọn "Tải tiện ích đã giải nén" rồi chọn thư mục extension/dist. Bấm biểu tượng Smart Link, dán một token tạo ở trên.',
+      'Lưu trang đang xem bằng một cú bấm. Mở chrome://extensions, bật Chế độ nhà phát triển, chọn "Tải tiện ích đã giải nén" rồi chọn thư mục extension/dist. Bấm biểu tượng Smart Link rồi đăng nhập bằng tài khoản này.',
   },
 
   sources: {

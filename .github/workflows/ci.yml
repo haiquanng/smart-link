@@ -30,6 +30,8 @@ jobs:
       - run: npm run build:extension
         env:
           VITE_SUPABASE_URL: https://example.supabase.co
+          # Placeholder: this build only checks that the bundle compiles.
+          VITE_SUPABASE_ANON_KEY: build-check-anon-key
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.1.4

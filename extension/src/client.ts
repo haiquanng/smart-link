@@ -1,31 +1,42 @@
-import { ingestBody, ingestOutcome, type Outcome } from './ingest';
+import { ingestBody, ingestOutcome, screenshotPath, type Outcome } from './ingest';
+import { getSession, supabase } from './session';
 
 declare const __INGEST_URL__: string;
-const TOKEN_KEY = 'apiToken';
+const BUCKET = 'screenshots';
 
-export async function getToken(): Promise<string | null> {
-  const stored = await chrome.storage.local.get(TOKEN_KEY);
-  const value = stored[TOKEN_KEY];
-  return typeof value === 'string' && value ? value : null;
-}
+/**
+ * Saves through the single ingest endpoint with the user's session, like the
+ * web app. A screenshot is uploaded to the user's folder first; ingest then
+ * checks ownership and that the object exists. Never logs tokens or notes.
+ */
+export async function save(url: string, note: string, image?: Blob): Promise<Outcome> {
+  const session = await getSession();
+  if (!session) return 'signed-out';
 
-export async function setToken(token: string | null): Promise<void> {
-  if (token) await chrome.storage.local.set({ [TOKEN_KEY]: token.trim() });
-  else await chrome.storage.local.remove(TOKEN_KEY);
-}
+  let imagePath: string | undefined;
+  if (image) {
+    imagePath = screenshotPath(session.user.id, crypto.randomUUID());
+    const { error } = await supabase.storage
+      .from(BUCKET)
+      .upload(imagePath, image, { contentType: 'image/jpeg', upsert: false });
+    if (error) return 'error';
+  }
 
-/** Posts to the single ingest endpoint with the personal api token. Never logs the token. */
-export async function save(url: string, note: string): Promise<Outcome> {
-  const token = await getToken();
-  if (!token) return 'bad-token';
+  let outcome: Outcome;
   try {
     const res = await fetch(__INGEST_URL__, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(ingestBody(url, note)),
+      headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(ingestBody(url, note, imagePath)),
     });
-    return ingestOutcome(res.status, await res.json().catch(() => null));
+    outcome = ingestOutcome(res.status, await res.json().catch(() => null));
   } catch {
-    return 'error';
+    outcome = 'error';
   }
+
+  // Best effort; the daily sweep removes anything left behind.
+  if (imagePath && outcome !== 'saved' && outcome !== 'duplicate') {
+    await supabase.storage.from(BUCKET).remove([imagePath]);
+  }
+  return outcome;
 }

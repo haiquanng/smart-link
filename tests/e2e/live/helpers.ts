@@ -10,6 +10,8 @@ const KEY = process.env.E2E_SERVICE_ROLE_KEY ?? '';
 const [EMAIL = '', PASSWORD = ''] = (process.env.E2E_USER ?? '').split(':');
 
 export const liveConfigured = !!URL && !!KEY && !!EMAIL && !!PASSWORD;
+/** The live test user, for UIs other than the web app (the Chrome extension). */
+export const liveUser = { email: EMAIL, password: PASSWORD };
 
 const headers = () => ({
   apikey: KEY,
