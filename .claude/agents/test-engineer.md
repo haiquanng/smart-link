@@ -11,7 +11,7 @@ Read `.claude/rules/testing.md` and `.claude/docs/business-rules.md`.
 Process:
 1. Map each acceptance criterion or business rule to a test.
 2. Put fixtures in `tests/fixtures/`. Use real-looking Facebook, Instagram, Threads and Substack URLs including `/share/` redirects and tracking params.
-3. Mock network and AI. Never call real sites or the Claude API.
+3. Mock network and AI. Never call real sites or the Gemini API.
 4. Run the tests. For a bug, prove the test fails before the fix and passes after.
 5. Report what is covered, what is not, and flaky risks.
 
