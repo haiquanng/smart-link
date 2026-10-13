@@ -17,7 +17,7 @@
     "seed:local": "vite-node tests/tools/seed-local.ts",
     "test:integration": "vitest run tests/integration",
     "gen:vapid": "vite-node tests/tools/gen-vapid.ts",
-    "build:extension": "vite build --config extension/vite.config.ts && cp public/pwa-192x192.png extension/dist/icon-192.png"
+    "build:extension": "vite build --config extension/vite.config.ts"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.24",
