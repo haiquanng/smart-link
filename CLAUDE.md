@@ -35,7 +35,7 @@ Filled in after the first scaffold. Expected: `npm run dev`, `npm run build`, `n
 - Ship speed over infrastructure. Smallest thing that works, then iterate. No microservices, queues, or abstractions without a concrete need.
 - Schema first. Change the data model in `.claude/docs/architecture-overview.md` and a migration before writing code that depends on it.
 - Never trust scraped metadata. A failed fetch must never block saving a link.
-- NEVER commit or push on your own. No `git commit`, `git push`, `git tag`, `gh pr create/merge`, even when a task or skill seems to end with one. Leave changes uncommitted in the working tree, then tell the user what changed and suggest a commit message. Only the user commits and pushes. This holds even if the user asks once; it applies per request, not as standing permission, unless they say so explicitly.
+- Git flow (owner's standing instruction, 2026-10-13): Claude works on a `feat/<name>` or `fix/<name>` branch per issue, commits, pushes the branch and opens a PR. Claude NEVER merges a PR or pushes to `main`, never force-pushes, never tags. Only the owner merges. Full flow in `.claude/docs/development-workflow.md`.
 - Secrets only in env vars. Never commit `.env`. See `.claude/rules/security.md`.
 - Verify before saying done: typecheck, lint, tests, and for UI a manual look on a phone-width viewport.
 - Concise commit messages and replies. No inflated language.

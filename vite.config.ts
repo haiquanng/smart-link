@@ -11,7 +11,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
-        importScripts: ['share-target-sw.js'],
+        importScripts: ['share-target-sw.js', 'push-sw.js'],
         // The POST is answered by the imported handler, never by the shell.
         navigateFallbackDenylist: [/^\/share-target/],
       },
@@ -57,7 +57,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
-    include: ['tests/**/*.{test,spec}.{ts,tsx}'],
+    include: ['tests/**/*.{test,spec}.{ts,tsx}', 'extension/src/**/*.test.ts'],
     exclude: ['tests/e2e/**', 'node_modules/**'],
     env: {
       VITE_SUPABASE_URL: 'http://localhost:54321',

@@ -29,3 +29,4 @@ playwright/.cache/
 
 # Edge functions run with --no-lock; a stray lockfile would only add churn
 supabase/functions/deno.lock
+extension/dist

@@ -5,6 +5,9 @@ import { defineConfig } from '@playwright/test';
 // unauthenticated sign-in screen to render.
 // E2E_PORT lets e2e run beside a dev server already using 5173 with real env.
 const PORT = Number(process.env.E2E_PORT ?? 5173);
+// E2E_PREVIEW serves a production build instead, for specs that need the
+// real service worker (share target).
+const PREVIEW = !!process.env.E2E_PREVIEW;
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -15,7 +18,9 @@ export default defineConfig({
     viewport: { width: 390, height: 844 },
   },
   webServer: {
-    command: `npm run dev -- --port ${PORT}`,
+    command: PREVIEW
+      ? `npm run build && npx vite preview --port ${PORT} --strictPort`
+      : `npm run dev -- --port ${PORT}`,
     port: PORT,
     reuseExistingServer: !process.env.CI,
     env: {
