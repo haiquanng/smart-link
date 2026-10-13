@@ -22,8 +22,12 @@
     "deny": [
       "Read(./.env)",
       "Read(./.env.*)",
+      "Read(./**/.env.*)",
+      "Read(./**/.env)",
       "Edit(./.env)",
       "Edit(./.env.*)",
+      "Edit(./**/.env.*)",
+      "Edit(./**/.env)",
       "Bash(rm -rf *)",
       "Bash(git push --force *)",
       "Bash(git reset --hard *)",
