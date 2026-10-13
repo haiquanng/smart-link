@@ -8,20 +8,25 @@
   <body>
     <main>
       <h1 id="title"></h1>
-      <p id="page" class="muted"></p>
-      <form id="save-form" hidden>
-        <textarea id="note" rows="3"></textarea>
-        <button id="save" type="submit"></button>
+      <form id="login-form" hidden>
+        <p id="login-hint" class="muted"></p>
+        <label id="email-label" for="email"></label>
+        <input id="email" type="email" autocomplete="username" required />
+        <label id="password-label" for="password"></label>
+        <input id="password" type="password" autocomplete="current-password" required />
+        <button id="login" type="submit"></button>
       </form>
-      <p id="status" role="status"></p>
-      <details id="token-box">
-        <summary id="token-summary"></summary>
-        <form id="token-form">
-          <label id="token-label" for="token"></label>
-          <input id="token" type="password" autocomplete="off" />
-          <button id="token-save" type="submit"></button>
+      <section id="app" hidden>
+        <p id="page" class="muted"></p>
+        <p id="already" class="ok" hidden></p>
+        <form id="save-form">
+          <textarea id="note" rows="3"></textarea>
+          <label class="check"><input id="capture" type="checkbox" /><span id="capture-label"></span></label>
+          <button id="save" type="submit"></button>
         </form>
-      </details>
+        <p class="muted account"><span id="account"></span><button id="logout" type="button" class="link"></button></p>
+      </section>
+      <p id="status" role="status"></p>
     </main>
     <script type="module" src="./src/popup.ts"></script>
   </body>

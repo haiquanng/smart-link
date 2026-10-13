@@ -3,7 +3,11 @@
     "composite": true,
     "tsBuildInfoFile": "../node_modules/.tmp/tsconfig.extension.tsbuildinfo",
     "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "skipLibCheck": true,
@@ -12,7 +16,22 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "types": ["chrome", "node"]
+    "types": [
+      "chrome",
+      "node"
+    ],
+    "paths": {
+      "@/*": [
+        "../src/*"
+      ]
+    }
   },
-  "include": ["src", "vite.config.ts"]
+  "include": [
+    "src",
+    "vite.config.ts",
+    "../src/lib/url.ts",
+    "../src/lib/ingestPayload.ts",
+    "../src/lib/sharedUrl.ts",
+    "../src/lib/image.ts"
+  ]
 }

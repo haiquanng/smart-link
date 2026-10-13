@@ -2,8 +2,8 @@ import { defineConfig, loadEnv, type Plugin } from 'vite';
 import { fileURLToPath, URL } from 'node:url';
 
 // Builds the Chrome extension into extension/dist (load it unpacked).
-// The ingest URL comes from VITE_SUPABASE_URL and is also the only host the
-// extension may call (minimal permissions).
+// VITE_SUPABASE_URL is also the only host the extension may call. The anon key
+// is public (same as the web app); the user signs in for a session.
 const root = fileURLToPath(new URL('.', import.meta.url));
 
 function manifest(supabaseUrl: string): Plugin {
@@ -17,12 +17,14 @@ function manifest(supabaseUrl: string): Plugin {
           {
             manifest_version: 3,
             name: 'Smart Link',
-            version: '0.1.0',
+            version: '0.2.0',
             description: 'Lưu link vào Smart Link kèm ghi chú.',
             action: { default_popup: 'popup.html', default_icon: { 192: 'icon-192.png' } },
             icons: { 192: 'icon-192.png' },
             background: { service_worker: 'background.js', type: 'module' },
-            permissions: ['activeTab', 'storage', 'contextMenus'],
+            // tabs: read the active tab's URL for the on-device "already saved" badge.
+            // activeTab: screenshot of the visible tab, only after a user click.
+            permissions: ['activeTab', 'storage', 'contextMenus', 'tabs', 'alarms'],
             host_permissions: [`${new URL(supabaseUrl).origin}/*`],
           },
           null,
@@ -36,18 +38,26 @@ function manifest(supabaseUrl: string): Plugin {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, fileURLToPath(new URL('..', import.meta.url)), 'VITE_');
   const supabaseUrl = process.env.VITE_SUPABASE_URL ?? env.VITE_SUPABASE_URL;
-  if (!supabaseUrl) throw new Error('VITE_SUPABASE_URL is required to build the extension');
+  const anonKey = process.env.VITE_SUPABASE_ANON_KEY ?? env.VITE_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !anonKey) {
+    throw new Error('VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are required to build the extension');
+  }
   return {
     root,
     publicDir: false,
-    define: { __INGEST_URL__: JSON.stringify(`${new URL(supabaseUrl).origin}/functions/v1/ingest`) },
+    define: {
+      __INGEST_URL__: JSON.stringify(`${new URL(supabaseUrl).origin}/functions/v1/ingest`),
+      __SUPABASE_URL__: JSON.stringify(new URL(supabaseUrl).origin),
+      __SUPABASE_ANON_KEY__: JSON.stringify(anonKey),
+    },
+    resolve: { alias: { '@': fileURLToPath(new URL('../src', import.meta.url)) } },
     plugins: [manifest(supabaseUrl)],
     build: {
       outDir: 'dist',
       emptyOutDir: true,
       rollupOptions: {
         input: { popup: `${root}popup.html`, background: `${root}src/background.ts` },
-        output: { entryFileNames: '[name].js', chunkFileNames: '[name].js', assetFileNames: '[name][extname]' },
+        output: { entryFileNames: '[name].js', chunkFileNames: 'shared-[name].js', assetFileNames: '[name][extname]' },
       },
     },
   };
