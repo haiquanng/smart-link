@@ -33,6 +33,13 @@ Per issue:
 
 Claude may commit, push branches, open PRs and comment on issues. Claude never merges a PR, never pushes to `main`, never force-pushes, never tags. Production deploys (`supabase db push`, `functions deploy`, secrets) run from CI on `main` (see CI/CD) or by the owner.
 
+## CI/CD
+- `.github/workflows/ci.yml` (every push): typecheck, lint, unit, build, `deno check` of all functions; then a job that starts local Supabase from scratch (all migrations), serves functions, seeds users (`npm run seed:local`, local URLs only), and runs `test:integration`, Playwright (mocked + live) and the preview service-worker spec. Failures upload `test-results/`.
+- `.github/workflows/deploy.yml` (push to `main`, or manual): `supabase link`, a guard that stops if the remote migration history is empty, `supabase db push`, `supabase functions deploy` (verify_jwt from `config.toml`). Runs in the `production` environment, so required reviewers can be added in GitHub settings.
+- Repo secrets for deploy: `SUPABASE_ACCESS_TOKEN` (account token), `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_REF` (`iylhzbmqixbwiunurmgo`). Edge function secrets (`GEMINI_API_KEY`, `CRON_SECRET`, VAPID keys) stay in Supabase, set once with `supabase secrets set`.
+- One-time before the first deploy run: production was migrated by hand, so record history with `npx supabase migration repair --status applied <every version already in prod>`; the guard step fails until then.
+- Frontend: Vercel's Git integration builds `main` (production) and other branches (previews). Env vars live in Vercel.
+
 ## Environment
 `.env.example` names: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (frontend); `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY` (edge function secrets only).
 

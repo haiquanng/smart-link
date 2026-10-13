@@ -15,19 +15,20 @@ Status as of 2026-10-13. Issues live on GitHub (`haiquanng/smart-link`); this is
 | 3 | Edit item, remove AI fields | #9 |
 | 3 | Retry enrich from the card | #10 |
 
-## In review (PR open, owner merges)
-| Issue | Branch |
-|---|---|
-| #11 Android Web Share Target | `feat/android-share-target` |
+## In review (branch pushed, owner opens/merges the PR, in this order)
+| Issue | Branch | Base |
+|---|---|---|
+| #11 Android Web Share Target | `feat/android-share-target` | `dev` |
+| Dev flow + this plan | `chore/dev-flow-and-plan` | `feat/android-share-target` |
+| #14 Core-loop e2e | `test/core-loop-e2e` | `chore/dev-flow-and-plan` |
+| CI/CD | `ci/github-actions` | `test/core-loop-e2e` |
 
 ## Next, in order
 | # | Issue | Why this order |
 |---|---|---|
-| 1 | #14 Core-loop e2e | Locks the main loop before bigger changes; feeds CI |
-| 2 | CI/CD | Every later PR is checked automatically; deploys stop being manual |
-| 3 | #8 Web Push reminders | Builds on Resurface; needs VAPID secrets, optional feature |
-| 4 | #12 Chrome extension | Separate package, uses existing tokens + ingest |
-| 5 | #15 UI polish + themes | Last: touches every screen, would conflict with feature work |
+| 1 | #8 Web Push reminders | Builds on Resurface; needs VAPID secrets, optional feature |
+| 2 | #12 Chrome extension | Separate package, uses existing tokens + ingest |
+| 3 | #15 UI polish + themes | Last: touches every screen, would conflict with feature work |
 
 ## Later (no issue yet)
 - Real-device pass on iPhone (installed PWA) and Android (share sheet).

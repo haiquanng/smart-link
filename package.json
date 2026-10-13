@@ -13,7 +13,9 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "spike": "vite-node tests/spike/server.ts",
-    "gen:icons": "vite-node tests/tools/gen-icons.ts"
+    "gen:icons": "vite-node tests/tools/gen-icons.ts",
+    "seed:local": "vite-node tests/tools/seed-local.ts",
+    "test:integration": "vitest run tests/integration"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.24",
