@@ -96,7 +96,7 @@ Set the same value as an edge function secret: `supabase secrets set CRON_SECRET
 `tests/e2e/live/shareTargetPost.spec.ts` needs the built worker: `VITE_SUPABASE_URL=… VITE_SUPABASE_ANON_KEY=… npx vite build --outDir /tmp/sl-preview && npx vite preview --outDir /tmp/sl-preview --port 5288`, then run Playwright with `E2E_PREVIEW=1 E2E_PORT=5288` plus the live env below. On a real Android phone: install the PWA from Chrome, then share from any app and pick Smart Link.
 
 ## Chrome extension
-`npm run build:extension` (reads `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from `.env` or the shell), then chrome://extensions → Developer mode → Load unpacked → `extension/dist`. After changing code, rebuild and press the reload icon on the extension card. Its e2e (`tests/e2e/live/extension.spec.ts`) loads the built folder into Chromium; build it with the local URL first. Publishing to the Chrome Web Store is not set up.
+`npm run build:extension` (reads `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from `.env` or the shell), then chrome://extensions → Developer mode → Load unpacked → `extension/dist`. After changing code, rebuild and press the reload icon on the extension card. Its e2e (`tests/e2e/live/extension.spec.ts`) loads the built folder into Chromium; build it with the local URL first. It runs locally only (owner decision, 2026-10-14): CI does not build `extension/dist` for the e2e job, so the spec skips there. Publishing to the Chrome Web Store is not set up.
 
 ## Live e2e
 Specs in `tests/e2e/live/` run against a real Supabase with no network mocks and skip unless configured. Locally: `npx supabase start`, create a confirmed user, then
