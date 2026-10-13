@@ -76,6 +76,21 @@ export const vi = {
     deleteDescription: 'Ảnh và ghi chú của mục sẽ bị xoá. Không thể hoàn tác.',
   },
 
+  share: {
+    title: 'Lưu từ chia sẻ',
+    urlLabel: 'Link',
+    noteLabel: 'Ghi chú của bạn',
+    notePlaceholder: 'Vì sao bạn lưu link này?',
+    images: (n: number) => `${n} ảnh`,
+    save: 'Lưu',
+    saving: 'Đang lưu…',
+    saved: 'Đã lưu vào Hộp lưu!',
+    failed: 'Lưu thất bại. Dữ liệu vẫn còn, thử lại nhé.',
+    empty: 'Không nhận được gì để lưu. Thử chia sẻ lại.',
+    readError: 'Không đọc được dữ liệu chia sẻ. Thử chia sẻ lại.',
+    toInbox: 'Về Hộp lưu',
+  },
+
   edit: {
     open: 'Sửa',
     title: 'Sửa mục',

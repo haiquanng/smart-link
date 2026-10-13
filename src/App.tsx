@@ -10,6 +10,7 @@ import { CollectionsScreen } from '@/screens/CollectionsScreen';
 import { CollectionScreen } from '@/screens/CollectionScreen';
 import { PublicCollectionScreen } from '@/screens/PublicCollectionScreen';
 import { ResurfaceScreen } from '@/screens/ResurfaceScreen';
+import { ShareScreen } from '@/screens/ShareScreen';
 import { useSession } from '@/hooks/useSession';
 
 export default function App() {
@@ -49,6 +50,7 @@ export default function App() {
           <Route path="/collections" element={<CollectionsScreen />} />
           <Route path="/collections/:id" element={<CollectionScreen />} />
           <Route path="/resurface" element={<ResurfaceScreen />} />
+          <Route path="/share" element={<ShareScreen />} />
           <Route
             path="/settings"
             element={<SettingsScreen email={session.user.email} />}

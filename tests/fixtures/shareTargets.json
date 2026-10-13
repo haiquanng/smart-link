@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Chrome Android: url in its own field",
+    "payload": { "title": "Cách định giá SaaS", "text": "", "url": "https://example.substack.com/p/pricing" },
+    "expected": { "url": "https://example.substack.com/p/pricing", "context": "Cách định giá SaaS" }
+  },
+  {
+    "name": "Facebook app: link only in text",
+    "payload": { "title": "", "text": "https://www.facebook.com/share/p/1KWvE4QeZK/", "url": "" },
+    "expected": { "url": "https://www.facebook.com/share/p/1KWvE4QeZK/", "context": "" }
+  },
+  {
+    "name": "Instagram: link with igsh in text",
+    "payload": { "text": "https://www.instagram.com/p/C9xYz12AbCd/?igsh=MTc4MmM1YmI2Ng==" },
+    "expected": { "url": "https://www.instagram.com/p/C9xYz12AbCd/?igsh=MTc4MmM1YmI2Ng==", "context": "" }
+  },
+  {
+    "name": "Threads: caption wrapped around the link",
+    "payload": { "title": "Threads", "text": "Bài hay về học tiếng Anh https://www.threads.net/@user/post/C8abc123", "url": "" },
+    "expected": { "url": "https://www.threads.net/@user/post/C8abc123", "context": "Bài hay về học tiếng Anh" }
+  },
+  {
+    "name": "Plain text, no link",
+    "payload": { "title": "", "text": "nhớ mua sách này", "url": "" },
+    "expected": { "url": "", "context": "nhớ mua sách này" }
+  }
+]
