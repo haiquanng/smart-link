@@ -15,7 +15,8 @@ import { localDay, REMINDER_HOUR } from '@/lib/reminderSchedule';
 const URL = process.env.SMART_LINK_URL;
 const SERVICE_ROLE_KEY = process.env.SMART_LINK_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.SMART_LINK_CRON_SECRET;
-const USER_ID = process.env.SMART_LINK_OTHER_USER_ID;
+// User A: the resurface suite owns user B's old items and counts its picks.
+const USER_ID = process.env.SMART_LINK_TEST_USER_ID;
 
 const configured = !!URL && !!SERVICE_ROLE_KEY && !!CRON_SECRET && !!USER_ID;
 

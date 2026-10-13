@@ -61,7 +61,10 @@ jobs:
           # Throwaway secrets for this run only; the fake push service in the
           # send-reminders test is reached via host.docker.internal.
           CRON_SECRET=$(openssl rand -hex 24)
-          { echo "CRON_SECRET=$CRON_SECRET"; npm run -s gen:vapid; echo "PUSH_EXTRA_HOSTS=host.docker.internal"; } > /tmp/functions.env
+          # Ingest limits raised: the suites save far more than a person would;
+          # the limiter itself is tested directly in rateLimit.integration.test.ts.
+          { echo "CRON_SECRET=$CRON_SECRET"; npm run -s gen:vapid; echo "PUSH_EXTRA_HOSTS=host.docker.internal";
+            echo "RATE_LIMIT_INGEST_PER_MIN=1000"; echo "RATE_LIMIT_INGEST_PER_DAY=100000"; } > /tmp/functions.env
           echo "SMART_LINK_CRON_SECRET=$CRON_SECRET" >> "$GITHUB_ENV"
           nohup supabase functions serve --env-file /tmp/functions.env > /tmp/functions.log 2>&1 &
           for i in $(seq 1 60); do
