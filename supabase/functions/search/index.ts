@@ -8,6 +8,7 @@ import { corsHeaders, json } from '../_shared/cors.ts';
 import { embedText } from '../_shared/gemini.ts';
 import { queryEmbeddingText } from '../_shared/geminiParse.ts';
 import { searchBodySchema } from '../_shared/searchBody.ts';
+import { enforceLimits, SEARCH_LIMITS } from '../_shared/rateLimit.ts';
 
 const EMBED_TIMEOUT_MS = 2500;
 const MAX_RESULTS = 50;
@@ -53,12 +54,15 @@ Deno.serve(async (req) => {
   if (!parsed.success) return json({ error: 'invalid body' }, 400);
   const { query, filters } = parsed.data;
 
-  const embedding = await embedQuery(query);
-
   const client = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: authorization } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
+  // Counted as the caller (auth.uid()), before spending a Gemini call.
+  const limited = await enforceLimits(client, SEARCH_LIMITS);
+  if (limited) return limited;
+
+  const embedding = await embedQuery(query);
   const { data, error } = await client.rpc('search_items', {
     query,
     // pgvector accepts its text form through PostgREST.

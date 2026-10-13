@@ -53,6 +53,12 @@ Set the same value as an edge function secret: `supabase secrets set CRON_SECRET
 - Supabase Auth -> URL Configuration: set Site URL to the production domain and add the Vercel domain (and preview pattern if wanted) to Redirect URLs.
 - `vercel.json` at the repo root handles the SPA fallback and keeps `sw.js` uncached so updates reach installed PWAs.
 
+## Rate limits
+- Migration `20261013000001` adds `rate_limits` and `hit_rate_limit()`. `ingest` and `search` call it per user; a 429 carries `Retry-After` and the client keeps the input.
+- Defaults: ingest 30/min and 500/day, search 60/min. Override with function secrets `RATE_LIMIT_INGEST_PER_MIN`, `RATE_LIMIT_INGEST_PER_DAY`, `RATE_LIMIT_SEARCH_PER_MIN`.
+- Integration test `tests/integration/rateLimit.integration.test.ts` runs against local Supabase (`npx supabase start`) with two test user ids.
+- Deno functions can be type-checked without a local install: `docker run --rm -v "$PWD/supabase/functions:/fn" -w /fn denoland/deno:2.1.4 deno check */index.ts`.
+
 ## Open questions
 ## Resolved
 - Enrich runs via a fire-and-forget call from ingest (non-blocking), re-runnable on demand, with a pg_cron retry fallback (`retry-enrich`).

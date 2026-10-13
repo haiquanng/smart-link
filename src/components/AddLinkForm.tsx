@@ -3,6 +3,7 @@ import { ScreenshotPicker } from '@/components/ScreenshotPicker';
 import { useSaveLink } from '@/hooks/useSaveLink';
 import { useScreenshotBatch } from '@/hooks/useScreenshotBatch';
 import { vi } from '@/i18n/vi';
+import { RateLimitedError } from '@/lib/api';
 
 const FIELD =
   'min-h-[46px] w-full bg-transparent px-3.5 text-[15px] text-ink outline-none placeholder:text-stone-400';
@@ -108,7 +109,11 @@ export function AddLinkForm() {
                 : 'text-stone-400'
           }`}
         >
-          {save.isError ? vi.add.failed : save.isSuccess ? vi.add.saved : vi.add.hint}
+          {save.isError
+            ? save.error instanceof RateLimitedError
+              ? vi.add.rateLimited
+              : vi.add.failed
+            : save.isSuccess ? vi.add.saved : vi.add.hint}
         </span>
         <button
           type="submit"

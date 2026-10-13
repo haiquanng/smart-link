@@ -5,7 +5,8 @@
 Capture (iOS Shortcut | in-app paste | screenshot upload | Android Share Target)
    -> POST /functions/v1/ingest   (api token or session JWT, validate, offline normalize, insert status=pending)
    -> enrich (background): resolve FB /share/ redirect + re-dedupe -> fetch metadata -> OCR/summary (Gemini) -> tags -> embedding (Google) -> status=ready
-PWA (Inbox | Search | Collections | Resurface | Settings)
+PWA (Inbox | Search | Collections | Rate limit | `rate_limits` table + `hit_rate_limit()` (fixed windows, security definer) | ingest 30/min and 500/day per user (all tokens + session share it), search 60/min; 429 with `Retry-After`; a failing check lets the request through |
+| Resurface | Settings)
    -> Supabase client under RLS -> search_items() / tables
 ```
 
@@ -75,6 +76,13 @@ PWA (Inbox | Search | Collections | Resurface | Settings)
     "label": "text, e.g. 'iPhone shortcut'",
     "last_used_at": "timestamptz, nullable",
     "revoked_at": "timestamptz, nullable"
+  },
+  "rate_limits": {
+    "user_id": "uuid fk auth.users, RLS on with no policies (only hit_rate_limit touches it)",
+    "bucket": "text, e.g. 'ingest:min', 'ingest:day', 'search:min'",
+    "window_start": "timestamptz, start of the fixed window",
+    "hits": "int",
+    "primary key": ["user_id", "bucket", "window_start"]
   },
   "profiles": {
     "id": "uuid pk fk auth.users, RLS (id = auth.uid())",

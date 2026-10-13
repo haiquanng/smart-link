@@ -25,6 +25,13 @@ export type TagCount = z.infer<typeof tagCountsSchema>[number];
 const SCREENSHOT_BUCKET = 'screenshots';
 export const SIGNED_URL_TTL_SECONDS = 3600;
 
+/** Ingest answered 429; the caller keeps the input so the user can retry. */
+export class RateLimitedError extends Error {
+  constructor() {
+    super('rate limited');
+  }
+}
+
 async function postIngest(body: Record<string, unknown>): Promise<void> {
   const session = await api.getSession();
   if (!session) throw new Error('not signed in');
@@ -36,6 +43,7 @@ async function postIngest(body: Record<string, unknown>): Promise<void> {
     },
     body: JSON.stringify(body),
   });
+  if (res.status === 429) throw new RateLimitedError();
   if (!res.ok) throw new Error(`save failed (${res.status})`);
 }
 

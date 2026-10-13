@@ -48,6 +48,7 @@ export const vi = {
     save: 'Lưu',
     saved: 'Đã lưu!',
     failed: 'Lưu thất bại, thử lại.',
+    rateLimited: 'Bạn lưu nhanh quá, đợi một chút rồi thử lại nhé.',
     hint: 'Ghi chú giúp bạn tìm lại sau này.',
     addImages: 'Thêm ảnh',
     removeImage: 'Bỏ ảnh',
