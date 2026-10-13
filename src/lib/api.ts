@@ -7,6 +7,7 @@ import { sourceSchema } from '@/lib/ingestPayload';
 import { EMPTY_FILTERS, toRequestFilters, type SearchFilters } from '@/lib/searchParams';
 import { ITEM_COLUMNS } from '@/lib/itemColumns';
 import { collectionsApi } from '@/lib/collectionsApi';
+import { fetchPublicCollection } from '@/lib/publicCollection';
 import type { ApiToken, Item } from '@/types/item';
 
 
@@ -182,6 +183,7 @@ export const api = {
   },
 
   collections: collectionsApi,
+  publicCollection: fetchPublicCollection,
 
   // --- API tokens ---------------------------------------------------------
   async listTokens(): Promise<ApiToken[]> {

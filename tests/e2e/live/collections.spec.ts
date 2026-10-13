@@ -44,9 +44,11 @@ test('create a collection, add an item, rename, delete it', async ({ page }) => 
     await page.getByRole('link', { name: 'Hộp lưu' }).first().click();
     await expect(page.getByText(marker)).toBeVisible();
   } finally {
-    await admin(`/rest/v1/collections?user_id=eq.${userId}&name=like.${encodeURIComponent('Quán ăn*')}`, {
-      method: 'DELETE',
-    });
+    for (const n of [name, `${name} mới`]) {
+      await admin(`/rest/v1/collections?user_id=eq.${userId}&name=eq.${encodeURIComponent(n)}`, {
+        method: 'DELETE',
+      });
+    }
     await admin(`/rest/v1/items?id=eq.${itemId}`, { method: 'DELETE' });
   }
 });

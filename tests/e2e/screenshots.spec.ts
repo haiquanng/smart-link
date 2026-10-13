@@ -129,7 +129,8 @@ test('uploads two screenshots, shows thumbnails, deletes one', async ({ page }) 
   await expect(page.getByRole('button', { name: 'Bỏ ảnh' })).toHaveCount(2);
 
   const addButton = page.getByRole('button', { name: 'Thêm ảnh' });
-  expect((await addButton.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+  // Rounded: the fade-in transform can report 43.9999px mid-animation.
+  expect(Math.round((await addButton.boundingBox())?.height ?? 0)).toBeGreaterThanOrEqual(44);
 
   await page.getByRole('button', { name: 'Lưu', exact: true }).click();
 
@@ -142,7 +143,7 @@ test('uploads two screenshots, shows thumbnails, deletes one', async ({ page }) 
   );
 
   const del = cards.first().getByRole('button', { name: 'Xoá' });
-  expect((await del.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+  expect(Math.round((await del.boundingBox())?.height ?? 0)).toBeGreaterThanOrEqual(44);
   await del.click();
   const dialog = page.getByRole('alertdialog');
   await dialog.getByRole('button', { name: 'Huỷ' }).click();

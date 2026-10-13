@@ -11,6 +11,8 @@ const collectionSchema = z.object({
   id: z.string(),
   name: z.string(),
   public_slug: z.string().nullable(),
+  share_notes: z.boolean(),
+  share_images: z.boolean(),
   created_at: z.string(),
   item_count: z.number(),
 });
@@ -36,7 +38,7 @@ export const collectionsApi = {
     const { data, error } = await supabase
       .from('collections')
       .insert({ user_id, name: collectionNameSchema.parse(name) })
-      .select('id, name, public_slug, created_at')
+      .select('id, name, public_slug, share_notes, share_images, created_at')
       .single();
     if (error) throw error;
     return collectionSchema.parse({ ...data, item_count: 0 });
@@ -48,6 +50,21 @@ export const collectionsApi = {
       .update({ name: collectionNameSchema.parse(name) })
       .eq('id', id);
     if (error) throw error;
+  },
+
+  /** Turning sharing on always mints a new slug; off kills the old link. */
+  async setSharing(
+    id: string,
+    sharing: { enabled: boolean; notes: boolean; images: boolean },
+  ): Promise<string | null> {
+    const { data, error } = await supabase.rpc('set_collection_sharing', {
+      p_collection: id,
+      p_enabled: sharing.enabled,
+      p_share_notes: sharing.notes,
+      p_share_images: sharing.images,
+    });
+    if (error) throw error;
+    return z.string().nullable().parse(data);
   },
 
   /** Memberships cascade; the items themselves stay. */

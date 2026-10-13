@@ -117,6 +117,25 @@ export const vi = {
     pickerTitle: 'Thêm vào bộ sưu tập',
     pickerEmpty: 'Chưa có bộ sưu tập nào. Tạo một cái bên dưới.',
     filterLabel: 'Bộ sưu tập',
+    share: 'Chia sẻ',
+    shared: 'Đang chia sẻ',
+    shareTitle: 'Chia sẻ bộ sưu tập',
+    shareHint: 'Ai có link đều xem được, không cần đăng nhập. Họ không sửa được gì.',
+    shareToggle: 'Bật link chia sẻ',
+    shareNotes: 'Kèm ghi chú của tôi',
+    shareImages: 'Kèm ảnh chụp màn hình',
+    shareOffHint: 'Tắt chia sẻ thì link cũ ngừng hoạt động ngay.',
+    shareError: 'Không cập nhật được, thử lại.',
+    copyLink: 'Sao chép link',
+  },
+
+  publicCollection: {
+    by: 'Bộ sưu tập được chia sẻ từ Smart Link',
+    notFoundTitle: 'Link không còn hoạt động',
+    notFound: 'Bộ sưu tập này đã ngừng chia sẻ hoặc link không đúng.',
+    loadError: 'Không tải được bộ sưu tập.',
+    empty: 'Bộ sưu tập này chưa có mục nào.',
+    cta: 'Tạo kho link của riêng bạn',
   },
 
   settings: {

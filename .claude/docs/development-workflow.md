@@ -59,6 +59,12 @@ Set the same value as an edge function secret: `supabase secrets set CRON_SECRET
 - Integration test `tests/integration/rateLimit.integration.test.ts` runs against local Supabase (`npx supabase start`) with two test user ids.
 - Deno functions can be type-checked without a local install: `docker run --rm -v "$PWD/supabase/functions:/fn" -w /fn denoland/deno:2.1.4 deno check */index.ts`.
 
+## Public share deploy
+`supabase functions deploy public-collection --no-verify-jwt` (also set in `config.toml`). Visitors have no session; the function only answers for a valid live slug.
+
+## Local functions
+`npx supabase functions serve --env-file <file>` runs every function against the local stack, so `tests/integration` (ingest, rate limit, collections, public share) and `tests/e2e/live` can run fully offline from production.
+
 ## Live e2e
 Specs in `tests/e2e/live/` run against a real Supabase with no network mocks and skip unless configured. Locally: `npx supabase start`, create a confirmed user, then
 `VITE_SUPABASE_URL=http://localhost:54321 VITE_SUPABASE_ANON_KEY=<local anon> E2E_SERVICE_ROLE_KEY=<local service role> E2E_USER=<email:password> E2E_PORT=<free port> npm run test:e2e`.

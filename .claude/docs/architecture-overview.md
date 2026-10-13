@@ -62,7 +62,9 @@ PWA (Inbox | Search | Collections | Rate limit | `rate_limits` table + `hit_rate
     "id": "uuid pk",
     "user_id": "uuid fk, RLS",
     "name": "text, 1-60 chars after trim",
-    "public_slug": "text, nullable, unguessable; non-null means shareable read-only",
+    "public_slug": "text, nullable, 24-char url-safe random (18 bytes); non-null means shareable read-only",
+    "share_notes": "bool default false; public view includes the owner's notes",
+    "share_images": "bool default false; public view includes screenshots as signed URLs",
     "created_at": "timestamptz default now()"
   },
   "collection_items": {
@@ -118,6 +120,8 @@ Tapping a card opens the original source (`url`, or the signed screenshot for sc
 
 ## Collections
 `user_collections()` (security invoker) returns the caller's collections with `item_count`, newest first. A collection's items are read with an inner embed on `collection_items` (`select=...,collection_items!inner()`), so no extra function. Deleting a collection cascades memberships only; items stay. Search filters by one collection via `filters.collection_id` (URL param `col`).
+
+Sharing: `set_collection_sharing(id, enabled, notes, images)` (security invoker). A live link keeps its slug when options change; turning sharing off clears the slug, so the next "on" mints a new one (rule 19). Public reads go only through Edge Function `public-collection` (`POST { slug }`, no user auth), which calls `public_collection(slug)` (security definer, service_role only) and returns name, url, title, summary, preview image, plus note and a 1h signed screenshot URL only when opted in (rule 20). Storage paths never leave the function. The PWA renders it at `/c/:slug` without a session.
 
 ## Known limits
 - Facebook, Instagram, Threads often block content fetch. The note and screenshot cover this.

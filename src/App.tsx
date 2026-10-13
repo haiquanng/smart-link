@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router';
+import { Navigate, Route, Routes, useLocation } from 'react-router';
 import { BottomTabs } from '@/components/BottomTabs';
 import { SideNav } from '@/components/SideNav';
 import { Spinner } from '@/components/Spinner';
@@ -9,11 +9,22 @@ import { SearchScreen } from '@/screens/SearchScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen';
 import { CollectionsScreen } from '@/screens/CollectionsScreen';
 import { CollectionScreen } from '@/screens/CollectionScreen';
+import { PublicCollectionScreen } from '@/screens/PublicCollectionScreen';
 import { useSession } from '@/hooks/useSession';
 import { vi } from '@/i18n/vi';
 
 export default function App() {
   const { session, loading } = useSession();
+  const { pathname } = useLocation();
+
+  // Shared collections are public: no session, no app chrome.
+  if (pathname.startsWith('/c/')) {
+    return (
+      <Routes>
+        <Route path="/c/:slug" element={<PublicCollectionScreen />} />
+      </Routes>
+    );
+  }
 
   if (loading) {
     return (

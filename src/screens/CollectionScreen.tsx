@@ -8,6 +8,7 @@ import { ItemList } from '@/components/ItemList';
 import { ItemSkeleton } from '@/components/ItemSkeleton';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { CollectionNameForm } from '@/components/CollectionNameForm';
+import { ShareCollectionDialog } from '@/components/ShareCollectionDialog';
 import { useCollections } from '@/hooks/useCollections';
 import { useCollectionItems } from '@/hooks/useCollectionItems';
 import { useCollectionActions } from '@/hooks/useCollectionActions';
@@ -46,7 +47,8 @@ export function CollectionScreen() {
         subtitle={collection ? vi.collections.itemCount(collection.item_count) : undefined}
       >
         {collection && (
-          <div className="mt-2 flex gap-1">
+          <div className="mt-2 flex items-center gap-1">
+            <ShareCollectionDialog collection={collection} />
             <button
               type="button"
               aria-label={vi.collections.rename}

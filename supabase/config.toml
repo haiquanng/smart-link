@@ -21,3 +21,6 @@ verify_jwt = false
 
 [functions.sweep-screenshots]
 verify_jwt = false
+
+[functions.public-collection]
+verify_jwt = false
