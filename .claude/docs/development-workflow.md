@@ -21,13 +21,27 @@ Phase 0 and 1 are the biggest risk. Do not build UI polish before the Shortcut p
 3. `verify-changes` to run typecheck, lint, tests.
 4. `code-review` before merge.
 
-## Git
-- Claude never commits or pushes. Not `git commit`, not `git push`, not PRs or tags. Both are blocked in `.claude/settings.json`.
-- Claude leaves changes in the working tree and ends with a suggested branch name and commit message for the user to run.
-- User convention: branch per task `feat/<short-name>`, `fix/<short-name>`; imperative subject up to 72 chars; no force push; squash merge to `main`.
+## Git and PR flow
+Branches: `main` (production, Vercel prod), `dev` (integration), one `feat/<name>` / `fix/<name>` / `chore/<name>` per issue.
+
+Per issue:
+1. Branch from the latest `dev`.
+2. Schema first: doc + migration, then code with tests (unit, integration against local Supabase, e2e at 390px).
+3. Verify: `npm run typecheck && npm run lint && npm test && npm run build`, local integration and e2e (sections below), a look at 390px and desktop.
+4. Commit (imperative subject <= 72 chars, `Closes #N` in the body), push the branch, open a PR **into `dev`**. Every PR targets `dev`, never another feature branch: stacked PRs merged in order end up in the feature branches, not in `dev`. If an earlier PR is still open and touches the same files, merge `dev` into the branch after it lands and resolve conflicts there (no force push). The PR lists what changed, how it was tested, what was not, and any deploy step.
+5. The owner reviews and merges into `dev`. `dev` -> `main` is a release PR, also merged by the owner; `Closes #N` fires then.
+
+Claude may commit, push branches, open PRs and comment on issues. Claude never merges a PR, never pushes to `main`, never force-pushes, never tags. Production deploys (`supabase db push`, `functions deploy`, secrets) run from CI on `main` (see CI/CD) or by the owner.
+
+## CI/CD
+- `.github/workflows/ci.yml` (every push): typecheck, lint, unit, build, `deno check` of all functions; then a job that starts local Supabase from scratch (all migrations), serves functions, seeds users (`npm run seed:local`, local URLs only), and runs `test:integration`, Playwright (mocked + live) and the preview service-worker spec. Failures upload `test-results/`.
+- `.github/workflows/deploy.yml` (push to `main`, or manual): `supabase link`, a guard that stops if the remote migration history is empty, `supabase db push`, `supabase functions deploy` (verify_jwt from `config.toml`). Runs in the `production` environment, so required reviewers can be added in GitHub settings.
+- Repo secrets for deploy: `SUPABASE_ACCESS_TOKEN` (account token), `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_REF` (`iylhzbmqixbwiunurmgo`). Edge function secrets (`GEMINI_API_KEY`, `CRON_SECRET`, VAPID keys) stay in Supabase, set once with `supabase secrets set`.
+- One-time before the first deploy run: production was migrated by hand, so record history with `npx supabase migration repair --status applied <every version already in prod>`; the guard step fails until then.
+- Frontend: Vercel's Git integration builds `main` (production) and other branches (previews). Env vars live in Vercel.
 
 ## Environment
-`.env.example` names: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (frontend); `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY` (edge function secrets only).
+`.env.example` names: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `VITE_VAPID_PUBLIC_KEY` (frontend); `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY` (edge function secrets only).
 
 ## Screenshot sweep setup
 The daily `sweep-screenshots` cron (migration `20261011000004`) needs two Vault secrets created by hand, never in git:
@@ -53,6 +67,12 @@ Set the same value as an edge function secret: `supabase secrets set CRON_SECRET
 - Supabase Auth -> URL Configuration: set Site URL to the production domain and add the Vercel domain (and preview pattern if wanted) to Redirect URLs.
 - `vercel.json` at the repo root handles the SPA fallback and keeps `sw.js` uncached so updates reach installed PWAs.
 
+## Web Push setup
+- `npm run -s gen:vapid` prints a key pair. Public key: Vercel env `VITE_VAPID_PUBLIC_KEY` and function secret `VAPID_PUBLIC_KEY`. Private key: `supabase secrets set VAPID_PRIVATE_KEY=…` only. Optional `VAPID_SUBJECT` (`mailto:` contact).
+- Migration `20261013000006` schedules `send-reminders` hourly using the same Vault secrets (`project_url`, `cron_secret`). Deploy with `supabase functions deploy send-reminders` (verify_jwt off in `config.toml`; it checks `CRON_SECRET` itself).
+- Without `VITE_VAPID_PUBLIC_KEY` the toggle is hidden; without the VAPID secrets the function answers 503. Resurface still works in the tab.
+- `PUSH_EXTRA_HOSTS` is for local tests only (fake push service); never set it in production.
+
 ## Rate limits
 - Migration `20261013000001` adds `rate_limits` and `hit_rate_limit()`. `ingest` and `search` call it per user; a 429 carries `Retry-After` and the client keeps the input.
 - Defaults: ingest 30/min and 500/day, search 60/min. Override with function secrets `RATE_LIMIT_INGEST_PER_MIN`, `RATE_LIMIT_INGEST_PER_DAY`, `RATE_LIMIT_SEARCH_PER_MIN`.
@@ -67,6 +87,9 @@ Set the same value as an edge function secret: `supabase secrets set CRON_SECRET
 
 ## Preview e2e (service worker)
 `tests/e2e/live/shareTargetPost.spec.ts` needs the built worker: `VITE_SUPABASE_URL=… VITE_SUPABASE_ANON_KEY=… npx vite build --outDir /tmp/sl-preview && npx vite preview --outDir /tmp/sl-preview --port 5288`, then run Playwright with `E2E_PREVIEW=1 E2E_PORT=5288` plus the live env below. On a real Android phone: install the PWA from Chrome, then share from any app and pick Smart Link.
+
+## Chrome extension
+`VITE_SUPABASE_URL=<project url> npm run build:extension`, then chrome://extensions → Developer mode → Load unpacked → `extension/dist`. Its e2e (`tests/e2e/live/extension.spec.ts`) loads the built folder into Chromium; build it with the local URL first. Publishing to the Chrome Web Store is not set up.
 
 ## Live e2e
 Specs in `tests/e2e/live/` run against a real Supabase with no network mocks and skip unless configured. Locally: `npx supabase start`, create a confirmed user, then

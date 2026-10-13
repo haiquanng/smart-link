@@ -6,6 +6,7 @@ Capture (iOS Shortcut | in-app paste | screenshot upload | Android Share Target)
    -> POST /functions/v1/ingest   (api token or session JWT, validate, offline normalize, insert status=pending)
    -> enrich (background): resolve FB /share/ redirect + re-dedupe -> fetch metadata -> OCR/summary (Gemini) -> tags -> embedding (Google) -> status=ready
 PWA (Inbox | Search | Collections | Rate limit | `rate_limits` table + `hit_rate_limit()` (fixed windows, security definer) | ingest 30/min and 500/day per user (all tokens + session share it), search 60/min; 429 with `Retry-After`; a failing check lets the request through |
+| Push reminders | `push_subscriptions` + Edge Function `send-reminders` via `pg_cron` hourly (`:05`) | One push per device per local day at 19:00, only if the user has resurface candidates (`resurface_candidates()`, service role). Sent with VAPID (`npm:web-push` builds the encrypted request, `fetch` sends it). Endpoints must be a known push service (SSRF guard `isPushEndpointAllowed`); 404/410 delete the row. Toggle in Settings only in an installed PWA (iOS 16.4+ Home Screen) |
 | Resurface | Settings)
    -> Supabase client under RLS -> search_items() / tables
 ```
@@ -22,6 +23,7 @@ PWA (Inbox | Search | Collections | Rate limit | `rate_limits` table + `hit_rate
 | Enrich retry | `pg_cron` + `pg_net` -> `enrich` `{ "retry_stuck": true }` every 15 min | Re-runs items `pending` >10 min or `enrich_failed`, while `enrich_attempts < 3`, 10 per run; auth by `CRON_SECRET` |
 | Storage | Supabase Storage, private bucket `screenshots` (5MB, jpeg/png/webp) | Path `{user_id}/{uuid}.jpg`, owner-only RLS, no update; signed URLs (1h, cached 50 min) |
 | Sweep | Edge Function `sweep-screenshots` via `pg_cron` + `pg_net` | Daily; deletes objects >24h old not referenced by `items.image_path`; auth by `CRON_SECRET` |
+| Push reminders | `push_subscriptions` + Edge Function `send-reminders` via `pg_cron` hourly (`:05`) | One push per device per local day at 19:00, only if the user has resurface candidates (`resurface_candidates()`, service role). Sent with VAPID (`npm:web-push` builds the encrypted request, `fetch` sends it). Endpoints must be a known push service (SSRF guard `isPushEndpointAllowed`); 404/410 delete the row. Toggle in Settings only in an installed PWA (iOS 16.4+ Home Screen) |
 | Resurface | `resurface_today(p_today)` + `resurface_picks` table | Picks made lazily on the first open of the user's local day (up to 3 oldest unseen, >=3 days old), stored so the list is stable all day; open/dismiss sets `seen_at`; `resurface_reset()` clears `seen_at` and picks. No cron needed |
 
 ## Data model (JSON)
@@ -95,10 +97,20 @@ PWA (Inbox | Search | Collections | Rate limit | `rate_limits` table + `hit_rate
     "item_id": "uuid fk items, cascade",
     "primary key": ["user_id", "pick_date", "item_id"]
   },
+  "push_subscriptions": {
+    "id": "uuid pk",
+    "user_id": "uuid fk, RLS",
+    "endpoint": "text unique, browser push service URL",
+    "p256dh": "text", "auth": "text",
+    "time_zone": "text, IANA zone of the device, for the 19:00 local send",
+    "last_sent_at": "timestamptz, nullable",
+    "created_at": "timestamptz"
+  },
   "profiles": {
     "id": "uuid pk fk auth.users, RLS (id = auth.uid())",
     "email": "text",
     "display_name": "text, nullable",
+    "theme": "text default 'default', one of default | peach | mint | lavender | dark",
     "created_at": "timestamptz, auto-created on signup via trigger"
   }
 }
@@ -120,6 +132,12 @@ At least one of `url`, `note`, or `image_path` is required.
 
 ## Android Share Target
 The manifest declares `share_target` (POST, multipart: `title`, `text`, `url`, `images`). A static host cannot receive that POST, so `public/share-target-sw.js` (imported into the Workbox worker) stores the share in Cache Storage (`share-target-v1`) and redirects to `/share?incoming=1`. `/share` reads it (`src/lib/shareInbox.ts`), recovers the link from `url`, `text` or `title` (`parseSharePayload`, reusing `coerceSharedUrl`), lets the user add a note, and saves through `ingest` with `channel = 'share_target'`: one screenshot item per image (each with the link and note) or one link item. The cache is cleared only after the save succeeds; a signed-out user signs in on the same URL and the share is still there. `/share?title=&text=&url=` (GET) also works, for when the worker is not installed yet. Android only.
+
+## Chrome extension
+`extension/` is a separate Manifest V3 bundle (`npm run build:extension` → `extension/dist`, load unpacked). Popup: the active tab's URL plus a note, saved with the user's personal api token (pasted once, `chrome.storage.local`) to the same `ingest` endpoint with `channel = 'extension'`. A right-click menu saves a page or link without a note (badge shows the result). Permissions: `activeTab`, `storage`, `contextMenus`, and host access to the project's Supabase origin only, set at build time from `VITE_SUPABASE_URL`. Revoking the token in Settings makes the popup ask for a new one.
+
+## Themes
+A theme (`src/lib/themes.ts`) is a few flat colors: canvas, surface, ink, line, accent (+ soft), danger/success/warning. The neutral scale (`stone-50…900`) is mixed from surface toward ink, so every theme tints its greys consistently. `applyTheme` overrides the Tailwind v4 CSS variables (`--color-stone-*`, `--color-white`, `--color-ink`, …) on `<html>`, so components keep their utility classes. Choice is stored in `profiles.theme` (follows the user across devices) and cached in localStorage so `main.tsx` applies it before the first paint. Unit tests check WCAG AA (4.5:1) for every text/background pair the components use, in every theme. Themes: default, peach, mint, lavender (light), dark (opt-in, never the default).
 
 ## Search
 `search_items(query text, query_embedding vector(768), filters jsonb, max_results int)` (security invoker, RLS applies) returns items ranked by `0.6 * fts_score + 0.4 * cosine_similarity`, where `fts_score = ts_rank(fts, q, 32)` scaled so the best text match in the result set is 1 and `unaccent` is applied to the query. Candidates = full-text matches ∪ the 50 nearest embeddings with cosine similarity >= 0.65 (measured: unrelated ~0.55-0.60, related ~0.70). If `query_embedding` is null or an item has no embedding, that item is ranked by full text only (business rule 12). Filters (all optional): `sources text[]`, `tags text[]` (any), `collection_id uuid`, `from`/`to` timestamptz.

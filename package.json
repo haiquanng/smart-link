@@ -13,7 +13,11 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "spike": "vite-node tests/spike/server.ts",
-    "gen:icons": "vite-node tests/tools/gen-icons.ts"
+    "gen:icons": "vite-node tests/tools/gen-icons.ts",
+    "seed:local": "vite-node tests/tools/seed-local.ts",
+    "test:integration": "vitest run tests/integration",
+    "gen:vapid": "vite-node tests/tools/gen-vapid.ts",
+    "build:extension": "vite build --config extension/vite.config.ts && cp public/pwa-192x192.png extension/dist/icon-192.png"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.24",
@@ -32,6 +36,7 @@
     "@tailwindcss/vite": "^4.0.0",
     "@testing-library/jest-dom": "^6.5.0",
     "@testing-library/react": "^16.0.1",
+    "@types/chrome": "^0.0.287",
     "@types/node": "^22.7.4",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

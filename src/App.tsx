@@ -12,9 +12,12 @@ import { PublicCollectionScreen } from '@/screens/PublicCollectionScreen';
 import { ResurfaceScreen } from '@/screens/ResurfaceScreen';
 import { ShareScreen } from '@/screens/ShareScreen';
 import { useSession } from '@/hooks/useSession';
+import { useTheme } from '@/hooks/useTheme';
 
 export default function App() {
   const { session, loading } = useSession();
+  // Pulls the profile theme once signed in (the cached one is already applied).
+  useTheme(!!session);
   const { pathname } = useLocation();
 
   // Shared collections are public: no session, no app chrome.

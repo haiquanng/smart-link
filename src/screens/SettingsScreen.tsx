@@ -5,6 +5,7 @@ import { Spinner } from '@/components/Spinner';
 import { ErrorState } from '@/components/ErrorState';
 import { CopyButton } from '@/components/CopyButton';
 import { ResurfaceSettings } from '@/components/ResurfaceSettings';
+import { ThemePicker } from '@/components/ThemePicker';
 import { useCreateToken, useRevokeToken, useTokens } from '@/hooks/useTokens';
 import { api } from '@/lib/api';
 import { env } from '@/lib/env';
@@ -53,6 +54,13 @@ export function SettingsScreen({ email }: SettingsScreenProps) {
             <button onClick={() => api.signOut()} className={SECONDARY}>
               {vi.auth.signOut}
             </button>
+          </div>
+        </div>
+
+        <div>
+          <h2 className={SECTION}>{vi.settings.themeTitle}</h2>
+          <div className={CARD}>
+            <ThemePicker />
           </div>
         </div>
 
@@ -140,6 +148,13 @@ export function SettingsScreen({ email }: SettingsScreenProps) {
                 </ul>
               )}
             </div>
+          </div>
+        </div>
+
+        <div>
+          <h2 className={SECTION}>{vi.settings.extensionTitle}</h2>
+          <div className={CARD}>
+            <p className="text-xs leading-relaxed text-stone-500">{vi.settings.extensionGuide}</p>
           </div>
         </div>
 

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Smart Link</title>
+    <link rel="stylesheet" href="./src/popup.css" />
+  </head>
+  <body>
+    <main>
+      <h1 id="title"></h1>
+      <p id="page" class="muted"></p>
+      <form id="save-form" hidden>
+        <textarea id="note" rows="3"></textarea>
+        <button id="save" type="submit"></button>
+      </form>
+      <p id="status" role="status"></p>
+      <details id="token-box">
+        <summary id="token-summary"></summary>
+        <form id="token-form">
+          <label id="token-label" for="token"></label>
+          <input id="token" type="password" autocomplete="off" />
+          <button id="token-save" type="submit"></button>
+        </form>
+      </details>
+    </main>
+    <script type="module" src="./src/popup.ts"></script>
+  </body>
+</html>
