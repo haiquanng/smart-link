@@ -25,11 +25,11 @@ Phase 0 and 1 are the biggest risk. Do not build UI polish before the Shortcut p
 Branches: `main` (production, Vercel prod), `dev` (integration), one `feat/<name>` / `fix/<name>` / `chore/<name>` per issue.
 
 Per issue:
-1. Branch from the newest unmerged feature branch, or from `dev` when nothing is pending. Stacking keeps shared files (`vi.ts`, `App.tsx`) conflict-free.
+1. Branch from the latest `dev`.
 2. Schema first: doc + migration, then code with tests (unit, integration against local Supabase, e2e at 390px).
 3. Verify: `npm run typecheck && npm run lint && npm test && npm run build`, local integration and e2e (sections below), a look at 390px and desktop.
-4. Commit (imperative subject <= 72 chars, `Closes #N` in the body), push the branch, open a PR into the branch it was cut from (the first in a stack targets `dev`). The PR lists what changed, how it was tested, what was not, and any deploy step.
-5. The owner reviews and merges, in stack order; GitHub retargets the next PR when its base branch is merged and deleted. `dev` -> `main` is a release PR, also merged by the owner.
+4. Commit (imperative subject <= 72 chars, `Closes #N` in the body), push the branch, open a PR **into `dev`**. Every PR targets `dev`, never another feature branch: stacked PRs merged in order end up in the feature branches, not in `dev`. If an earlier PR is still open and touches the same files, merge `dev` into the branch after it lands and resolve conflicts there (no force push). The PR lists what changed, how it was tested, what was not, and any deploy step.
+5. The owner reviews and merges into `dev`. `dev` -> `main` is a release PR, also merged by the owner; `Closes #N` fires then.
 
 Claude may commit, push branches, open PRs and comment on issues. Claude never merges a PR, never pushes to `main`, never force-pushes, never tags. Production deploys (`supabase db push`, `functions deploy`, secrets) run from CI on `main` (see CI/CD) or by the owner.
 

@@ -9,22 +9,17 @@ Status as of 2026-10-13. Issues live on GitHub (`haiquanng/smart-link`); this is
 | 3 | Enrich: metadata, Gemini OCR/title/summary/tags, embeddings, retry cron | `014ad14` |
 | 4 | Hybrid search, filters, no-diacritics | `6c53a1a` |
 | Security | Rate limit ingest + search | #13 |
+| Capture | Android Web Share Target | #11 (PR #16) |
 | 5 | Collections | #5 |
 | 5 | Public read-only share link | #6 |
 | 5 | Resurface tab | #7 |
 | 3 | Edit item, remove AI fields | #9 |
 | 3 | Retry enrich from the card | #10 |
 
-## In review (branch pushed, owner opens/merges the PR, in this order)
-| Issue | Branch | Base |
+## In review
+| PR | Into | Contains |
 |---|---|---|
-| #11 Android Web Share Target | `feat/android-share-target` | `dev` |
-| Dev flow + this plan | `chore/dev-flow-and-plan` | `feat/android-share-target` |
-| #14 Core-loop e2e | `test/core-loop-e2e` | `chore/dev-flow-and-plan` |
-| CI/CD | `ci/github-actions` | `test/core-loop-e2e` |
-| #8 Web Push reminders | `feat/web-push` | `ci/github-actions` |
-| #12 Chrome extension | `feat/chrome-extension` | `feat/web-push` |
-| #15 Themes + AA contrast | `feat/themes` | `feat/chrome-extension` |
+| #24 | `dev` | #14 core-loop e2e, CI/CD, #8 Web Push, #12 Chrome extension, #15 themes, workflow docs (PRs #17-#22 were merged into stacked feature branches, not `dev`) |
 
 ## Next, in order
 | # | Issue | Why this order |
