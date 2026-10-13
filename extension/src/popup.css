@@ -1,12 +1,20 @@
 :root { color-scheme: light; font-family: system-ui, sans-serif; }
+/* Author `display` rules below would otherwise override the hidden attribute. */
+[hidden] { display: none !important; }
 body { margin: 0; width: 340px; background: #fafaf9; color: #1c1917; }
 main { padding: 16px; display: grid; gap: 10px; }
 h1 { margin: 0; font-size: 16px; }
+section { display: grid; gap: 10px; }
 .muted { margin: 0; color: #78716c; font-size: 12px; word-break: break-all; }
-textarea, input { box-sizing: border-box; width: 100%; border: 1px solid #e7e5e4; border-radius: 10px; padding: 10px; font: inherit; font-size: 14px; background: #fff; }
+.ok { margin: 0; color: #047857; font-size: 13px; }
+label { font-size: 12px; color: #57534e; }
+textarea, input[type='email'], input[type='password'] { box-sizing: border-box; width: 100%; border: 1px solid #e7e5e4; border-radius: 10px; padding: 10px; font: inherit; font-size: 14px; background: #fff; }
 form { display: grid; gap: 8px; }
+.check { display: flex; align-items: center; gap: 8px; min-height: 32px; font-size: 13px; color: #1c1917; cursor: pointer; }
+.check input { width: 16px; height: 16px; margin: 0; }
 button { min-height: 40px; border: 0; border-radius: 10px; background: #1c1917; color: #fff; font-weight: 600; cursor: pointer; }
 button:disabled { background: #d6d3d1; }
+button.link { min-height: 24px; padding: 0; background: none; color: #78716c; font-weight: 400; text-decoration: underline; }
+.account { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
 #status { margin: 0; font-size: 13px; min-height: 1em; }
 #status.ok { color: #047857; } #status.err { color: #dc2626; }
-summary { font-size: 12px; color: #78716c; cursor: pointer; min-height: 24px; }

@@ -31,15 +31,19 @@ Per issue:
 4. Commit (imperative subject <= 72 chars, `Closes #N` in the body), push the branch, open a PR **into `dev`**. Every PR targets `dev`, never another feature branch: stacked PRs merged in order end up in the feature branches, not in `dev`. If an earlier PR is still open and touches the same files, merge `dev` into the branch after it lands and resolve conflicts there (no force push). The PR lists what changed, how it was tested, what was not, and any deploy step.
 5. The owner reviews and merges into `dev`. `dev` -> `main` is a release PR, also merged by the owner; `Closes #N` fires then.
 
-Claude may commit, push branches, open PRs and comment on issues. Claude never merges a PR, never pushes to `main`, never force-pushes, never tags. Production deploys (`supabase db push`, `functions deploy`, secrets) run from CI on `main` (see CI/CD) or by the owner.
+Claude may commit, push branches, open PRs and comment on issues. Claude never merges a PR, never pushes to `main`, never force-pushes, never tags. Production deploys (`supabase db push`, `functions deploy`, secrets) are run by hand by the owner (see Deploy).
 
-## CI/CD
+## CI
 - `.github/workflows/ci.yml` (every push): typecheck, lint, unit, build, `deno check` of all functions; then a job that starts local Supabase from scratch (all migrations), serves functions, seeds users (`npm run seed:local`, local URLs only), and runs `test:integration`, Playwright (mocked + live) and the preview service-worker spec. Failures upload `test-results/`.
-- `.github/workflows/deploy.yml` (push to `main`, or manual), no `supabase link` (it reads the project's API keys, incl. service_role): builds a masked session-pooler URL (`POOLER_HOST`, port 5432; transaction mode 6543 breaks migrations), a `psql` guard that stops if the remote migration history is empty (and reports connection errors separately), `db push --dry-run` then `db push` via `--db-url`, then `functions deploy --project-ref` (verify_jwt from `config.toml`).
-- Secrets live as **environment secrets of `production`**, with deployment branches limited to `main`, so no other branch or workflow can read them: `SUPABASE_DB_PASSWORD` (full `postgres` access, the sensitive one), `SUPABASE_PROJECT_REF` (`iylhzbmqixbwiunurmgo`), `SUPABASE_ACCESS_TOKEN` (scopes: Edge Functions read-write, Project Settings read; nothing else). Edge function secrets (`GEMINI_API_KEY`, `CRON_SECRET`, VAPID keys) stay in Supabase, set once with `supabase secrets set`.
-- If the pooler host changes (Dashboard -> Connect -> Session pooler), update `POOLER_HOST` in `deploy.yml`.
-- One-time before the first deploy run: production was migrated by hand, so record history with `npx supabase migration repair --status applied <every version already in prod>`; the guard step fails until then.
 - Frontend: Vercel's Git integration builds `main` (production) and other branches (previews). Env vars live in Vercel.
+
+## Deploy (manual)
+A GitHub Actions deploy existed but took 4+ minutes per run; the owner chose manual deploys (2026-10-13). From the repo root, after `npx supabase login` and a one-time `npx supabase link --project-ref iylhzbmqixbwiunurmgo` (asks for the database password):
+- `npx supabase migration list` — check what is pending (Local without Remote).
+- `npx supabase db push` — apply pending migrations. The remote history was repaired on 2026-10-13, so it does not replay old ones.
+- `npx supabase functions deploy --use-api` — deploy all edge functions (no Docker needed); verify_jwt per function comes from `config.toml`. Or name one: `… functions deploy search --use-api`.
+- Edge function secrets (`GEMINI_API_KEY`, `CRON_SECRET`, VAPID keys) stay in Supabase, set once with `supabase secrets set`.
+- Frontend deploys itself through Vercel.
 
 ## Environment
 `.env.example` names: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `VITE_VAPID_PUBLIC_KEY` (frontend); `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY` (edge function secrets only).
@@ -69,9 +73,11 @@ Set the same value as an edge function secret: `supabase secrets set CRON_SECRET
 - `vercel.json` at the repo root handles the SPA fallback and keeps `sw.js` uncached so updates reach installed PWAs.
 
 ## Web Push setup
+**Paused since 2026-10-13** (owner decision): migration `20261013000008` unschedules `send-reminders`, and without `VITE_VAPID_PUBLIC_KEY` the whole push block is hidden in Settings. Resurface still works in its tab. To resume: set the keys below, then re-run the `cron.schedule` block from `20261013000006` in a new migration.
+
 - `npm run -s gen:vapid` prints a key pair. Public key: Vercel env `VITE_VAPID_PUBLIC_KEY` and function secret `VAPID_PUBLIC_KEY`. Private key: `supabase secrets set VAPID_PRIVATE_KEY=…` only. Optional `VAPID_SUBJECT` (`mailto:` contact).
 - Migration `20261013000006` schedules `send-reminders` hourly using the same Vault secrets (`project_url`, `cron_secret`). Deploy with `supabase functions deploy send-reminders` (verify_jwt off in `config.toml`; it checks `CRON_SECRET` itself).
-- Without `VITE_VAPID_PUBLIC_KEY` the toggle is hidden; without the VAPID secrets the function answers 503. Resurface still works in the tab.
+- Without `VITE_VAPID_PUBLIC_KEY` the push block in Settings is hidden; without the VAPID secrets the function answers 503. Resurface still works in the tab.
 - `PUSH_EXTRA_HOSTS` is for local tests only (fake push service); never set it in production.
 
 ## Rate limits
@@ -90,7 +96,7 @@ Set the same value as an edge function secret: `supabase secrets set CRON_SECRET
 `tests/e2e/live/shareTargetPost.spec.ts` needs the built worker: `VITE_SUPABASE_URL=… VITE_SUPABASE_ANON_KEY=… npx vite build --outDir /tmp/sl-preview && npx vite preview --outDir /tmp/sl-preview --port 5288`, then run Playwright with `E2E_PREVIEW=1 E2E_PORT=5288` plus the live env below. On a real Android phone: install the PWA from Chrome, then share from any app and pick Smart Link.
 
 ## Chrome extension
-`VITE_SUPABASE_URL=<project url> npm run build:extension`, then chrome://extensions → Developer mode → Load unpacked → `extension/dist`. Its e2e (`tests/e2e/live/extension.spec.ts`) loads the built folder into Chromium; build it with the local URL first. Publishing to the Chrome Web Store is not set up.
+`npm run build:extension` (reads `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` from `.env` or the shell), then chrome://extensions → Developer mode → Load unpacked → `extension/dist`. After changing code, rebuild and press the reload icon on the extension card. Its e2e (`tests/e2e/live/extension.spec.ts`) loads the built folder into Chromium; build it with the local URL first. Publishing to the Chrome Web Store is not set up.
 
 ## Live e2e
 Specs in `tests/e2e/live/` run against a real Supabase with no network mocks and skip unless configured. Locally: `npx supabase start`, create a confirmed user, then
