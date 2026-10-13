@@ -22,13 +22,13 @@ Status as of 2026-10-13. Issues live on GitHub (`haiquanng/smart-link`); this is
 | Dev flow + this plan | `chore/dev-flow-and-plan` | `feat/android-share-target` |
 | #14 Core-loop e2e | `test/core-loop-e2e` | `chore/dev-flow-and-plan` |
 | CI/CD | `ci/github-actions` | `test/core-loop-e2e` |
+| #8 Web Push reminders | `feat/web-push` | `ci/github-actions` |
 
 ## Next, in order
 | # | Issue | Why this order |
 |---|---|---|
-| 1 | #8 Web Push reminders | Builds on Resurface; needs VAPID secrets, optional feature |
-| 2 | #12 Chrome extension | Separate package, uses existing tokens + ingest |
-| 3 | #15 UI polish + themes | Last: touches every screen, would conflict with feature work |
+| 1 | #12 Chrome extension | Separate package, uses existing tokens + ingest |
+| 2 | #15 UI polish + themes | Last: touches every screen, would conflict with feature work |
 
 ## Later (no issue yet)
 - Real-device pass on iPhone (installed PWA) and Android (share sheet).

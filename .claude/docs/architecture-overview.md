@@ -6,6 +6,7 @@ Capture (iOS Shortcut | in-app paste | screenshot upload | Android Share Target)
    -> POST /functions/v1/ingest   (api token or session JWT, validate, offline normalize, insert status=pending)
    -> enrich (background): resolve FB /share/ redirect + re-dedupe -> fetch metadata -> OCR/summary (Gemini) -> tags -> embedding (Google) -> status=ready
 PWA (Inbox | Search | Collections | Rate limit | `rate_limits` table + `hit_rate_limit()` (fixed windows, security definer) | ingest 30/min and 500/day per user (all tokens + session share it), search 60/min; 429 with `Retry-After`; a failing check lets the request through |
+| Push reminders | `push_subscriptions` + Edge Function `send-reminders` via `pg_cron` hourly (`:05`) | One push per device per local day at 19:00, only if the user has resurface candidates (`resurface_candidates()`, service role). Sent with VAPID (`npm:web-push` builds the encrypted request, `fetch` sends it). Endpoints must be a known push service (SSRF guard `isPushEndpointAllowed`); 404/410 delete the row. Toggle in Settings only in an installed PWA (iOS 16.4+ Home Screen) |
 | Resurface | Settings)
    -> Supabase client under RLS -> search_items() / tables
 ```
@@ -22,6 +23,7 @@ PWA (Inbox | Search | Collections | Rate limit | `rate_limits` table + `hit_rate
 | Enrich retry | `pg_cron` + `pg_net` -> `enrich` `{ "retry_stuck": true }` every 15 min | Re-runs items `pending` >10 min or `enrich_failed`, while `enrich_attempts < 3`, 10 per run; auth by `CRON_SECRET` |
 | Storage | Supabase Storage, private bucket `screenshots` (5MB, jpeg/png/webp) | Path `{user_id}/{uuid}.jpg`, owner-only RLS, no update; signed URLs (1h, cached 50 min) |
 | Sweep | Edge Function `sweep-screenshots` via `pg_cron` + `pg_net` | Daily; deletes objects >24h old not referenced by `items.image_path`; auth by `CRON_SECRET` |
+| Push reminders | `push_subscriptions` + Edge Function `send-reminders` via `pg_cron` hourly (`:05`) | One push per device per local day at 19:00, only if the user has resurface candidates (`resurface_candidates()`, service role). Sent with VAPID (`npm:web-push` builds the encrypted request, `fetch` sends it). Endpoints must be a known push service (SSRF guard `isPushEndpointAllowed`); 404/410 delete the row. Toggle in Settings only in an installed PWA (iOS 16.4+ Home Screen) |
 | Resurface | `resurface_today(p_today)` + `resurface_picks` table | Picks made lazily on the first open of the user's local day (up to 3 oldest unseen, >=3 days old), stored so the list is stable all day; open/dismiss sets `seen_at`; `resurface_reset()` clears `seen_at` and picks. No cron needed |
 
 ## Data model (JSON)
@@ -94,6 +96,15 @@ PWA (Inbox | Search | Collections | Rate limit | `rate_limits` table + `hit_rate
     "pick_date": "date, the user's local day",
     "item_id": "uuid fk items, cascade",
     "primary key": ["user_id", "pick_date", "item_id"]
+  },
+  "push_subscriptions": {
+    "id": "uuid pk",
+    "user_id": "uuid fk, RLS",
+    "endpoint": "text unique, browser push service URL",
+    "p256dh": "text", "auth": "text",
+    "time_zone": "text, IANA zone of the device, for the 19:00 local send",
+    "last_sent_at": "timestamptz, nullable",
+    "created_at": "timestamptz"
   },
   "profiles": {
     "id": "uuid pk fk auth.users, RLS (id = auth.uid())",

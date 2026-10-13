@@ -41,7 +41,7 @@ Claude may commit, push branches, open PRs and comment on issues. Claude never m
 - Frontend: Vercel's Git integration builds `main` (production) and other branches (previews). Env vars live in Vercel.
 
 ## Environment
-`.env.example` names: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (frontend); `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY` (edge function secrets only).
+`.env.example` names: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `VITE_VAPID_PUBLIC_KEY` (frontend); `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY` (edge function secrets only).
 
 ## Screenshot sweep setup
 The daily `sweep-screenshots` cron (migration `20261011000004`) needs two Vault secrets created by hand, never in git:
@@ -66,6 +66,12 @@ Set the same value as an edge function secret: `supabase secrets set CRON_SECRET
 - Project settings -> Environment Variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (anon key only).
 - Supabase Auth -> URL Configuration: set Site URL to the production domain and add the Vercel domain (and preview pattern if wanted) to Redirect URLs.
 - `vercel.json` at the repo root handles the SPA fallback and keeps `sw.js` uncached so updates reach installed PWAs.
+
+## Web Push setup
+- `npm run -s gen:vapid` prints a key pair. Public key: Vercel env `VITE_VAPID_PUBLIC_KEY` and function secret `VAPID_PUBLIC_KEY`. Private key: `supabase secrets set VAPID_PRIVATE_KEY=…` only. Optional `VAPID_SUBJECT` (`mailto:` contact).
+- Migration `20261013000006` schedules `send-reminders` hourly using the same Vault secrets (`project_url`, `cron_secret`). Deploy with `supabase functions deploy send-reminders` (verify_jwt off in `config.toml`; it checks `CRON_SECRET` itself).
+- Without `VITE_VAPID_PUBLIC_KEY` the toggle is hidden; without the VAPID secrets the function answers 503. Resurface still works in the tab.
+- `PUSH_EXTRA_HOSTS` is for local tests only (fake push service); never set it in production.
 
 ## Rate limits
 - Migration `20261013000001` adds `rate_limits` and `hit_rate_limit()`. `ingest` and `search` call it per user; a 429 carries `Retry-After` and the client keeps the input.

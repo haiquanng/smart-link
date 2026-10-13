@@ -55,7 +55,11 @@ jobs:
 
       - name: Serve edge functions
         run: |
-          touch /tmp/functions.env
+          # Throwaway secrets for this run only; the fake push service in the
+          # send-reminders test is reached via host.docker.internal.
+          CRON_SECRET=$(openssl rand -hex 24)
+          { echo "CRON_SECRET=$CRON_SECRET"; npm run -s gen:vapid; echo "PUSH_EXTRA_HOSTS=host.docker.internal"; } > /tmp/functions.env
+          echo "SMART_LINK_CRON_SECRET=$CRON_SECRET" >> "$GITHUB_ENV"
           nohup supabase functions serve --env-file /tmp/functions.env > /tmp/functions.log 2>&1 &
           for i in $(seq 1 60); do
             curl -s -X POST http://127.0.0.1:54321/functions/v1/public-collection \
