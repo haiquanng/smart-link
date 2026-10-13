@@ -226,6 +226,14 @@ export const vi = {
     shortcutGuide:
       'Tạo Shortcut nhận dữ liệu từ Share Sheet, hỏi ghi chú, rồi POST JSON {url, note, channel:"shortcut"} kèm header Authorization: Bearer <token> tới endpoint ingest.',
     endpointLabel: 'Endpoint',
+    themeTitle: 'Giao diện',
+    themes: {
+      default: 'Mặc định',
+      peach: 'Đào',
+      mint: 'Bạc hà',
+      lavender: 'Oải hương',
+      dark: 'Tối',
+    },
     extensionTitle: 'Tiện ích Chrome (máy tính)',
     extensionGuide:
       'Lưu trang đang xem bằng một cú bấm. Mở chrome://extensions, bật Chế độ nhà phát triển, chọn "Tải tiện ích đã giải nén" rồi chọn thư mục extension/dist. Bấm biểu tượng Smart Link, dán một token tạo ở trên.',

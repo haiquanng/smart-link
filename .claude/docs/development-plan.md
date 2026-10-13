@@ -24,11 +24,13 @@ Status as of 2026-10-13. Issues live on GitHub (`haiquanng/smart-link`); this is
 | CI/CD | `ci/github-actions` | `test/core-loop-e2e` |
 | #8 Web Push reminders | `feat/web-push` | `ci/github-actions` |
 | #12 Chrome extension | `feat/chrome-extension` | `feat/web-push` |
+| #15 Themes + AA contrast | `feat/themes` | `feat/chrome-extension` |
 
 ## Next, in order
 | # | Issue | Why this order |
 |---|---|---|
-| 1 | #15 UI polish + themes | Last: touches every screen, would conflict with feature work |
+| 1 | Release PR `dev` -> `main` | After the stack is merged; then the one-time migration repair and deploy secrets |
+| 2 | Design review of screens with the owner | #15 shipped the theme system and contrast fixes; the visual direction of each screen still needs the owner's eye (earlier pass was judged "too AI") |
 
 ## Later (no issue yet)
 - Real-device pass on iPhone (installed PWA) and Android (share sheet).
