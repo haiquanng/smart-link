@@ -94,6 +94,17 @@ describe('ItemCard', () => {
     expect(within(sheet).getByLabelText(/Tiêu đề/)).toHaveValue('A Facebook post');
   });
 
+  it('offers a retry on a failed item in owner views only', () => {
+    const failed = { ...base, status: 'enrich_failed' as const };
+    const { unmount } = render(withQuery(<ItemCard item={failed} canOrganize onDelete={vi.fn()} />));
+    expect(screen.getByText(/chưa xử lý được/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Xử lý lại' })).toBeInTheDocument();
+    unmount();
+
+    render(<ItemCard item={failed} />);
+    expect(screen.queryByRole('button', { name: 'Xử lý lại' })).not.toBeInTheDocument();
+  });
+
   it('clamps long notes so cards keep the same height', () => {
     render(<ItemCard item={{ ...base, note: 'dài '.repeat(200) }} />);
     expect(screen.getByTitle(/^dài/)).toHaveClass('line-clamp-2');

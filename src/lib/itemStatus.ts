@@ -10,3 +10,8 @@ export function isEnriching(item: Item, now: number): boolean {
     now - new Date(item.created_at).getTime() < ENRICH_WINDOW_MS
   );
 }
+
+/** Failed, or pending long enough that its trigger was probably lost. */
+export function needsRetry(item: Item, now: number): boolean {
+  return item.status === 'enrich_failed' || (item.status === 'pending' && !isEnriching(item, now));
+}
